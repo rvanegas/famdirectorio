@@ -1,0 +1,25 @@
+import { Command } from 'commander'
+import { registerImportCommand } from './commands/import.command'
+import { registerMemberCommand } from './commands/member.command'
+import { registerRelationshipCommand } from './commands/relationship.command'
+import { registerBranchCommand } from './commands/branch.command'
+import { registerMediaCommand } from './commands/media.command'
+import { registerPdfCommand } from './commands/pdf.command'
+
+export function createProgram(): Command {
+  const program = new Command()
+
+  program
+    .name('fam')
+    .description('Durán Mazuera family directory CLI')
+    .version('1.0.0')
+
+  registerImportCommand(program)
+  registerMemberCommand(program)
+  registerRelationshipCommand(program)
+  registerBranchCommand(program)
+  registerMediaCommand(program)
+  registerPdfCommand(program)
+
+  return program
+}
