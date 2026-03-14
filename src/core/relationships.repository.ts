@@ -10,6 +10,10 @@ function toRelationship(row: typeof relationships.$inferSelect): Relationship {
   }
 }
 
+export function findAll(): Relationship[] {
+  return db.select().from(relationships).all().map(toRelationship)
+}
+
 export function findByMember(memberId: number): Relationship[] {
   return db
     .select()
