@@ -39,18 +39,18 @@ export function branchesTable(branches: Branch[]): string {
 
 export function memberDetail(m: Member): string {
   const lines = [
-    `ID:         ${m.id}`,
-    `Name:       ${m.firstName} ${m.lastName ?? ''}`,
-    `Generation: ${m.generation ?? '-'}`,
-    `City:       ${m.city ?? '-'}`,
-    `Occupation: ${m.occupation ?? '-'}`,
-    `Email:      ${m.email ?? '-'}`,
-    `Phone:      ${m.phone ?? '-'}`,
-    `Branch ID:  ${m.branchId ?? '-'}`,
-    `Alive:      ${m.isAlive ? 'Yes' : 'No'}`,
+    `ID:            ${m.id}`,
+    `Name:          ${m.firstName} ${m.lastName ?? ''}`,
+    `Generation:    ${m.generation ?? '-'}`,
+    `City:          ${m.city ?? '-'}`,
+    `Occupation:    ${m.occupation ?? '-'}`,
+    `Email:         ${m.email ?? '-'}`,
+    `Phone:         ${m.phone ?? '-'}`,
+    `Branch ID:     ${m.branchId ?? '-'}`,
+    `Alive:         ${m.isAlive ? 'Yes' : 'No'}`,
     `Attended 2023: ${m.attended2023 ? 'Yes' : 'No'}`,
-    `Notes:      ${m.notes ?? '-'}`,
-    `Relation:   ${m.relationText ?? '-'}`,
+    `Notes:         ${m.notes ?? '-'}`,
+    `Relation:      ${m.relationText ?? '-'}`,
   ]
   return lines.join('\n')
 }
