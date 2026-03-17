@@ -1,6 +1,6 @@
 import { db } from '../db/client'
-import { relationships, members } from '../db/schema'
-import { eq, or } from 'drizzle-orm'
+import { relationships } from '../db/schema'
+import { and, eq, or } from 'drizzle-orm'
 import type { Relationship } from './types'
 
 function toRelationship(row: typeof relationships.$inferSelect): Relationship {
@@ -55,6 +55,21 @@ export function create(
     .returning()
     .get()
   return toRelationship(result)
+}
+
+export function findByPair(
+  memberA: number,
+  memberB: number,
+  type?: Relationship['type'],
+): Relationship[] {
+  const forward = and(eq(relationships.fromMemberId, memberA), eq(relationships.toMemberId, memberB))
+  const reverse = and(eq(relationships.fromMemberId, memberB), eq(relationships.toMemberId, memberA))
+  return db
+    .select()
+    .from(relationships)
+    .where(type ? and(or(forward, reverse), eq(relationships.type, type)) : or(forward, reverse))
+    .all()
+    .map(toRelationship)
 }
 
 export function remove(id: number): boolean {

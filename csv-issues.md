@@ -6,7 +6,6 @@ Members with no parent, child, or spouse relationships (31 total).
 
 | ID | Name |
 |----|------|
-| 99 | GustavoGABRIEL Durán Mazuera |
 | 105 | MARINA Durán Mazuera |
 
 ## Gen 3
