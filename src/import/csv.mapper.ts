@@ -41,7 +41,6 @@ export function mapRow(row: RawCsvRow): MappedRow {
     attended2023: normalizeBool(row['Asistió 2023']),
     isAlive: normalizeBool(row.Vive),
     photoPath: null,
-    branchId: null,
     notes: null,
   }
 

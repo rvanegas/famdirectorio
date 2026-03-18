@@ -1,7 +1,7 @@
 import { input, confirm, select } from '@inquirer/prompts'
 import type { Member } from '../../core/types'
 
-type MemberInput = Omit<Member, 'id' | 'photoPath' | 'branchId'>
+type MemberInput = Omit<Member, 'id' | 'photoPath'>
 
 export async function promptMember(defaults: Partial<MemberInput> = {}): Promise<MemberInput> {
   const firstName = await input({

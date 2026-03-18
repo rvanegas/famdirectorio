@@ -1,5 +1,5 @@
 import { db, sqlite } from '../db/client'
-import { members, relationships, branches } from '../db/schema'
+import { members, relationships } from '../db/schema'
 import type { NewRelationship } from '../db/schema'
 import { parseCsv } from './csv.parser'
 import { mapRows } from './csv.mapper'
@@ -40,22 +40,7 @@ export async function importCsv(filePath: string): Promise<void> {
       }
     }
 
-    // 2. Seed branches from Gen-2 members
-    const gen2Members = [...memberMap.values()].filter((m) => GEN2_IDS.has(m.id!))
-    for (const gen2 of gen2Members) {
-      const branchName = `Rama ${gen2.firstName} ${gen2.lastName ?? ''}`.trim()
-      const existing = db.select().from(branches).where(eq(branches.founderMemberId, gen2.id!)).get()
-      if (!existing) {
-        db.insert(branches).values({
-          name: branchName,
-          founderMemberId: gen2.id!,
-          description: null,
-          colorHex: null,
-        }).run()
-      }
-    }
-
-    // 3. Upsert all relationships (Ref/Rel columns + inferred from text)
+    // 2. Upsert all relationships (Ref/Rel columns + inferred from text)
     //    Pre-load existing rels into a Set to avoid N+1 queries and to give
     //    the text resolver accurate dedup context (including prior imports).
     const relSet = new Set<string>()
@@ -106,42 +91,12 @@ export async function importCsv(filePath: string): Promise<void> {
       }
     }
 
-    // 4. Resolve branchId for each member by walking up relationships
-    const allBranches = db.select().from(branches).all()
-    const branchByFounder = new Map(allBranches.map((b) => [b.founderMemberId!, b.id]))
-
-    // Build parent lookup: memberId → parentId
-    const parentOf = new Map<number, number>()
-    for (const r of db.select().from(relationships).all()) {
-      if (r.type === 'child') parentOf.set(r.toMemberId, r.fromMemberId)
-    }
-
-    function resolveBranch(memberId: number, depth = 0): number | null {
-      if (depth > 10) return null
-      if (GEN2_IDS.has(memberId)) return branchByFounder.get(memberId) ?? null
-      if (ROOT_IDS.has(memberId)) return null
-      const parent = parentOf.get(memberId)
-      if (!parent) return null
-      return resolveBranch(parent, depth + 1)
-    }
-
-    for (const member of memberMap.values()) {
-      const branchId = resolveBranch(member.id!)
-      if (branchId !== null) {
-        db.update(members)
-          .set({ branchId })
-          .where(eq(members.id, member.id!))
-          .run()
-      }
-    }
   })()
 
   const memberCount = db.select({ n: sql<number>`count(*)` }).from(members).get()!.n
   const relCount = db.select({ n: sql<number>`count(*)` }).from(relationships).get()!.n
-  const branchCount = db.select({ n: sql<number>`count(*)` }).from(branches).get()!.n
 
   console.log(`Import complete:`)
   console.log(`  Members:       ${memberCount}`)
   console.log(`  Relationships: ${relCount} (${inferredCount} inferred from text)`)
-  console.log(`  Branches:      ${branchCount}`)
 }

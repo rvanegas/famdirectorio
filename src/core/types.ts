@@ -13,7 +13,6 @@ export interface Member {
   attended2023: boolean
   isAlive: boolean
   photoPath: string | null
-  branchId: number | null
   notes: string | null
 }
 
@@ -25,14 +24,6 @@ export interface Relationship {
   notes: string | null
 }
 
-export interface Branch {
-  id: number
-  name: string
-  founderMemberId: number | null
-  description: string | null
-  colorHex: string | null
-}
-
 export interface MediaAsset {
   id: number
   memberId: number
@@ -40,10 +31,6 @@ export interface MediaAsset {
   mediaType: 'photo' | 'document' | 'video' | null
   caption: string | null
   isPrimary: boolean
-}
-
-export interface MemberWithBranch extends Member {
-  branch: Branch | null
 }
 
 export interface MemberWithMedia extends Member {

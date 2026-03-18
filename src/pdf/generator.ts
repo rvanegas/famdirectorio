@@ -2,33 +2,50 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import * as membersRepo from '../core/members.repository'
-import * as branchesRepo from '../core/branches.repository'
 import * as relRepo from '../core/relationships.repository'
-import type { Branch, Member, Relationship } from '../core/types'
+import type { Member, Relationship } from '../core/types'
 import { renderCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
 
-// Assign distinct colors to branches
+// Assign distinct colors to Gen-2 sections
 const BRANCH_COLORS = [
   '#2E4057', '#048A81', '#54C6EB', '#8EE3EF', '#CAF0F8',
   '#5C4033', '#8D6E63', '#A1887F', '#795548', '#4E342E',
   '#1B5E20', '#2E7D32', '#388E3C', '#43A047', '#1565C0',
 ]
 
+export type BranchSection = { id: number; name: string; colorHex: string }
+
 export interface GenerateOptions {
   outputPath?: string
+}
+
+function resolveGen2Ancestor(
+  memberId: number,
+  parentMap: Map<number, number>,
+  memberMap: Map<number, Member>,
+): number | null {
+  let id: number | undefined = memberId
+  for (let depth = 0; depth < 10; depth++) {
+    const m = memberMap.get(id)
+    if (!m) return null
+    if (m.generation === 2) return m.id
+    id = parentMap.get(id)
+    if (id === undefined) return null
+  }
+  return null
 }
 
 function buildNuclearFamilies(
   members: Member[],
   allRels: Relationship[],
   memberMap: Map<number, Member>,
-  branchMap: Map<number, Branch>,
+  gen2Map: Map<number, BranchSection>,
 ): NuclearFamily[] {
-  // Build spouse and children lookup maps from all relationships
   const spouseMap = new Map<number, number[]>()
   const childrenMap = new Map<number, number[]>()
+  const parentMap = new Map<number, number>()
 
   for (const rel of allRels) {
     if (rel.type === 'spouse') {
@@ -38,9 +55,9 @@ function buildNuclearFamilies(
       }
     }
     if (rel.type === 'child') {
-      // fromMemberId is parent, toMemberId is child
       if (!childrenMap.has(rel.fromMemberId)) childrenMap.set(rel.fromMemberId, [])
       childrenMap.get(rel.fromMemberId)!.push(rel.toMemberId)
+      parentMap.set(rel.toMemberId, rel.fromMemberId)
     }
   }
 
@@ -53,7 +70,6 @@ function buildNuclearFamilies(
 
     const heads: Member[] = [member]
 
-    // Add spouse if not yet processed
     for (const spouseId of spouseMap.get(member.id) ?? []) {
       if (!processed.has(spouseId)) {
         const spouse = memberMap.get(spouseId)
@@ -64,7 +80,6 @@ function buildNuclearFamilies(
       }
     }
 
-    // Collect children from all heads (union, deduped)
     const childIds = new Set<number>()
     for (const head of heads) {
       for (const cid of childrenMap.get(head.id) ?? []) {
@@ -77,10 +92,10 @@ function buildNuclearFamilies(
       .filter(Boolean) as Member[]
     children.sort((a, b) => a.id - b.id)
 
-    const branch = member.branchId ? branchMap.get(member.branchId) ?? null : null
-
-    // Only create a family page if there's a spouse or children
     if (heads.length < 2 && children.length === 0) continue
+
+    const gen2Id = resolveGen2Ancestor(member.id, parentMap, memberMap)
+    const branch = gen2Id ? gen2Map.get(gen2Id) ?? null : null
 
     families.push({
       heads,
@@ -111,61 +126,60 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   doc.pipe(stream)
 
   // --- Collect data ---
-  let allBranches = branchesRepo.findAll()
-
-  // Assign colors
-  const branchMap = new Map<number, Branch>()
-  allBranches = allBranches.map((b, i) => {
-    const colored = { ...b, colorHex: b.colorHex ?? BRANCH_COLORS[i % BRANCH_COLORS.length] }
-    branchMap.set(colored.id, colored)
-    return colored
-  })
-
   const allMembers = membersRepo.findAll()
   const memberMap = new Map(allMembers.map(m => [m.id, m]))
   const allRels = relRepo.findAll()
 
+  // Build Gen-2 sections with ad hoc colors
+  const gen2Members = membersRepo.findByGeneration(2)
+  gen2Members.sort((a, b) => a.id - b.id)
+  const gen2Map = new Map<number, BranchSection>()
+  for (let i = 0; i < gen2Members.length; i++) {
+    const m = gen2Members[i]
+    gen2Map.set(m.id, {
+      id: m.id,
+      name: `Rama ${m.firstName} ${m.lastName ?? ''}`.trim(),
+      colorHex: BRANCH_COLORS[i % BRANCH_COLORS.length],
+    })
+  }
+
   // --- Cover ---
   doc.addPage()
-  renderCover(doc, allMembers.length, allBranches.length)
-
+  renderCover(doc, allMembers.length)
 
   // --- Family pages ---
   {
-    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, branchMap)
+    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map)
 
-    // Group families by branch (null = root)
-    const familiesByBranch = new Map<number | null, NuclearFamily[]>()
+    // Group families by Gen-2 section (null = root)
+    const familiesBySection = new Map<number | null, NuclearFamily[]>()
     for (const family of allFamilies) {
       const key = family.branch?.id ?? null
-      if (!familiesByBranch.has(key)) familiesByBranch.set(key, [])
-      familiesByBranch.get(key)!.push(family)
+      if (!familiesBySection.has(key)) familiesBySection.set(key, [])
+      familiesBySection.get(key)!.push(family)
     }
 
     // Sort families within each group by generation
-    for (const [, families] of familiesByBranch) {
+    for (const [, families] of familiesBySection) {
       families.sort((a, b) => a.generation - b.generation)
     }
 
-    // First: root families (no branch), sorted by generation
-    const rootFamilies = familiesByBranch.get(null) ?? []
+    // First: root families (no section), sorted by generation
+    const rootFamilies = familiesBySection.get(null) ?? []
     for (const family of rootFamilies) {
       doc.addPage()
       renderFamilyPage(doc, family)
     }
 
-    // Then each branch
-    for (const branch of allBranches) {
-      const branchFamilies = familiesByBranch.get(branch.id) ?? []
-      if (branchFamilies.length === 0) continue
+    // Then each Gen-2 section
+    for (const section of gen2Map.values()) {
+      const sectionFamilies = familiesBySection.get(section.id) ?? []
+      if (sectionFamilies.length === 0) continue
 
-      // Branch divider page
       doc.addPage()
-      const branchPageNum = doc.bufferedPageRange().count
-      renderBranchDivider(doc, branch, branchFamilies.reduce((n, f) => n + f.heads.length, 0))
+      renderBranchDivider(doc, section, sectionFamilies.reduce((n, f) => n + f.heads.length, 0))
 
-      // One page per nuclear family
-      for (const family of branchFamilies) {
+      for (const family of sectionFamilies) {
         doc.addPage()
         renderFamilyPage(doc, family)
       }

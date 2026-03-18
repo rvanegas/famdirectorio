@@ -2,7 +2,7 @@ import PDFDocument from 'pdfkit'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
-export function renderCover(doc: PDFDoc, memberCount: number, branchCount: number): void {
+export function renderCover(doc: PDFDoc, memberCount: number): void {
   const { width, height } = doc.page
 
   // Background
@@ -44,7 +44,7 @@ export function renderCover(doc: PDFDoc, memberCount: number, branchCount: numbe
     .font('Helvetica')
     .fontSize(13)
     .fillColor('#aaaacc')
-    .text(`${memberCount} miembros · ${branchCount} ramas`, 0, height * 0.61, { align: 'center', width })
+    .text(`${memberCount} miembros`, 0, height * 0.61, { align: 'center', width })
 
   // Year
   doc

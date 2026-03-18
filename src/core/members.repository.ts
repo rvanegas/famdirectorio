@@ -1,7 +1,7 @@
 import { db } from '../db/client'
-import { members, branches } from '../db/schema'
-import { eq, and, like } from 'drizzle-orm'
-import type { Member, MemberWithBranch } from './types'
+import { members } from '../db/schema'
+import { eq, like } from 'drizzle-orm'
+import type { Member } from './types'
 
 function toMember(row: typeof members.$inferSelect): Member {
   return {
@@ -24,10 +24,6 @@ export function findByGeneration(generation: number): Member[] {
   return db.select().from(members).where(eq(members.generation, generation)).all().map(toMember)
 }
 
-export function findByBranch(branchId: number): Member[] {
-  return db.select().from(members).where(eq(members.branchId, branchId)).all().map(toMember)
-}
-
 export function findByCity(city: string): Member[] {
   return db
     .select()
@@ -35,20 +31,6 @@ export function findByCity(city: string): Member[] {
     .where(like(members.city, `%${city}%`))
     .all()
     .map(toMember)
-}
-
-export function findWithBranch(id: number): MemberWithBranch | null {
-  const row = db
-    .select()
-    .from(members)
-    .leftJoin(branches, eq(members.branchId, branches.id))
-    .where(eq(members.id, id))
-    .get()
-  if (!row) return null
-  return {
-    ...toMember(row.members),
-    branch: row.branches ?? null,
-  }
 }
 
 export function create(data: Omit<Member, 'id'> & { id?: number }): Member {

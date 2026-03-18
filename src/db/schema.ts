@@ -14,7 +14,6 @@ export const members = sqliteTable('members', {
   attended2023: integer('attended_2023'),
   isAlive: integer('is_alive'),
   photoPath: text('photo_path'),
-  branchId: integer('branch_id').references(() => branches.id),
   notes: text('notes'),
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),
@@ -33,14 +32,6 @@ export const relationships = sqliteTable('relationships', {
   createdAt: text('created_at').default(sql`(datetime('now'))`),
 })
 
-export const branches = sqliteTable('branches', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  founderMemberId: integer('founder_member_id'),
-  description: text('description'),
-  colorHex: text('color_hex'),
-})
-
 export const media = sqliteTable('media', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   memberId: integer('member_id')
@@ -57,7 +48,5 @@ export type Member = typeof members.$inferSelect
 export type NewMember = typeof members.$inferInsert
 export type Relationship = typeof relationships.$inferSelect
 export type NewRelationship = typeof relationships.$inferInsert
-export type Branch = typeof branches.$inferSelect
-export type NewBranch = typeof branches.$inferInsert
 export type Media = typeof media.$inferSelect
 export type NewMedia = typeof media.$inferInsert

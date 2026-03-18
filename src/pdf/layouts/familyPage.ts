@@ -1,7 +1,8 @@
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
-import type { Member, Branch } from '../../core/types'
+import type { Member } from '../../core/types'
+import type { BranchSection } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -16,7 +17,7 @@ export interface NuclearFamily {
   heads: Member[]    // 1 or 2 parents/heads
   children: Member[]
   generation: number
-  branch: Branch | null
+  branch: BranchSection | null
 }
 
 export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {

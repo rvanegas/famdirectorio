@@ -1,9 +1,9 @@
 import PDFDocument from 'pdfkit'
-import type { Branch, Member } from '../../core/types'
+import type { BranchSection } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
-export function renderBranchDivider(doc: PDFDoc, branch: Branch, memberCount: number): void {
+export function renderBranchDivider(doc: PDFDoc, branch: BranchSection, memberCount: number): void {
   const { width, height } = doc.page
   const accent = branch.colorHex ?? '#1a1a2e'
 

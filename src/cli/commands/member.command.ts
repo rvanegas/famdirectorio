@@ -12,14 +12,11 @@ export function registerMemberCommand(program: Command): void {
     .command('list')
     .description('List members')
     .option('-g, --generation <n>', 'Filter by generation')
-    .option('-b, --branch <id>', 'Filter by branch ID')
     .option('-c, --city <name>', 'Filter by city (partial match)')
     .action((opts) => {
       let result
       if (opts.generation) {
         result = membersRepo.findByGeneration(parseInt(opts.generation, 10))
-      } else if (opts.branch) {
-        result = membersRepo.findByBranch(parseInt(opts.branch, 10))
       } else if (opts.city) {
         result = membersRepo.findByCity(opts.city)
       } else {
@@ -33,15 +30,12 @@ export function registerMemberCommand(program: Command): void {
     .command('get <id>')
     .description('Show full details for a member')
     .action((id) => {
-      const member = membersRepo.findWithBranch(parseInt(id, 10))
+      const member = membersRepo.findById(parseInt(id, 10))
       if (!member) {
         console.error(chalk.red(`Member ${id} not found`))
         process.exit(1)
       }
       console.log(memberDetail(member))
-      if (member.branch) {
-        console.log(`Branch:     ${member.branch.name}`)
-      }
     })
 
   memberCmd
@@ -49,7 +43,7 @@ export function registerMemberCommand(program: Command): void {
     .description('Add a new member (interactive)')
     .action(async () => {
       const data = await promptMember()
-      const member = membersRepo.create({ ...data, photoPath: null, branchId: null })
+      const member = membersRepo.create({ ...data, photoPath: null })
       console.log(chalk.green(`Created member ID ${member.id}: ${member.firstName} ${member.lastName ?? ''}`))
     })
 

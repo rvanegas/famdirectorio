@@ -2,7 +2,7 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import type { Member } from '../../core/types'
-import type { Branch } from '../../core/types'
+import type { BranchSection } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -16,7 +16,7 @@ function branchColor(colorHex: string | null | undefined): string {
 export function renderMemberPage(
   doc: PDFDoc,
   member: Member,
-  branch: Branch | null,
+  branch: BranchSection | null,
 ): void {
   const { width, height } = doc.page
   const accent = branchColor(branch?.colorHex)
@@ -119,7 +119,7 @@ export function renderMemberPage(
 export function renderMemberGrid(
   doc: PDFDoc,
   pageMembers: Member[],
-  branches: Map<number, Branch>,
+  branches: Map<number, BranchSection>,
 ): void {
   // 2-column grid for Gen 3+ members (half-page each)
   const { width, height } = doc.page
@@ -134,7 +134,7 @@ export function renderMemberGrid(
 
   pageMembers.slice(0, 4).forEach((member, i) => {
     const pos = positions[i]
-    const branch = member.branchId ? branches.get(member.branchId) ?? null : null
+    const branch = null
     renderMemberMini(doc, member, branch, pos.x, pos.y, colWidth, rowHeight)
   })
 }
@@ -142,7 +142,7 @@ export function renderMemberGrid(
 function renderMemberMini(
   doc: PDFDoc,
   member: Member,
-  branch: Branch | null,
+  branch: BranchSection | null,
   x: number,
   y: number,
   w: number,
