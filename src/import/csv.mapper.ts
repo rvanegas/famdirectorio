@@ -6,8 +6,7 @@ const REL_TYPE_MAP: Record<string, NewRelationship['type']> = {
   esposo: 'spouse',
   hija: 'child',
   hijo: 'child',
-  hermana: 'sibling',
-  hermano: 'sibling',
+  // hermana/hermano intentionally omitted — siblings are inferred from shared parent
 }
 
 function normalizeBool(value: string): number {

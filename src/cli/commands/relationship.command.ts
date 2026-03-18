@@ -12,23 +12,33 @@ export function registerRelationshipCommand(program: Command): void {
     .command('list <memberId>')
     .description('List all relationships for a member')
     .action((memberId) => {
-      const member = membersRepo.findById(parseInt(memberId, 10))
+      const id = parseInt(memberId, 10)
+      const member = membersRepo.findById(id)
       if (!member) {
         console.error(chalk.red(`Member ${memberId} not found`))
         process.exit(1)
       }
-      const rels = relsRepo.findByMember(parseInt(memberId, 10))
-      if (rels.length === 0) {
+      const rels = relsRepo.findByMember(id)
+      const siblingIds = relsRepo.findSiblings(id)
+      if (rels.length === 0 && siblingIds.length === 0) {
         console.log('No relationships recorded.')
         return
       }
       for (const rel of rels) {
-        const other = membersRepo.findById(
-          rel.fromMemberId === member.id ? rel.toMemberId : rel.fromMemberId,
-        )
-        const direction = rel.fromMemberId === member.id ? '→' : '←'
-        const name = other ? `${other.firstName} ${other.lastName ?? ''}` : `ID ${rel.toMemberId}`
-        console.log(`  ${direction} ${rel.type.padEnd(8)} ${name} (ID ${other?.id ?? '?'})`)
+        const isFrom = rel.fromMemberId === member.id
+        const otherId = isFrom ? rel.toMemberId : rel.fromMemberId
+        const other = membersRepo.findById(otherId)
+        const name = other ? `${other.firstName} ${other.lastName ?? ''}` : `ID ${otherId}`
+        const phrase =
+          rel.type === 'child'
+            ? isFrom ? 'has child' : 'is child of'
+            : 'is spouse of'
+        console.log(`  ${phrase.padEnd(13)}  ${name} (ID ${otherId})`)
+      }
+      for (const sibId of siblingIds) {
+        const sib = membersRepo.findById(sibId)
+        const name = sib ? `${sib.firstName} ${sib.lastName ?? ''}` : `ID ${sibId}`
+        console.log(`  is sibling of  ${name} (ID ${sibId}) [inferred]`)
       }
     })
 
@@ -36,9 +46,9 @@ export function registerRelationshipCommand(program: Command): void {
     .command('add <fromId> <toId> <type>')
     .description(
       'Add a relationship between two members.\n' +
-      '  child:   fromId is the parent, toId is the child\n' +
-      '  spouse, sibling: symmetric (order does not matter)\n' +
-      '  Types: child|spouse|sibling',
+      '  child:  fromId is the parent, toId is the child\n' +
+      '  spouse: symmetric (order does not matter)\n' +
+      '  Types: child|spouse  (siblings are inferred from shared parents)',
     )
     .action((fromId, toId, type) => {
       const validTypes = relationshipsSchema.type.enumValues

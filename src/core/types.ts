@@ -20,7 +20,7 @@ export interface Relationship {
   id: number
   fromMemberId: number
   toMemberId: number
-  type: 'child' | 'spouse' | 'sibling'
+  type: 'child' | 'spouse'
   notes: string | null
 }
 

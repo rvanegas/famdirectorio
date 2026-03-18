@@ -43,6 +43,27 @@ export function findParent(memberId: number): Relationship | null {
   return row ? toRelationship(row) : null
 }
 
+export function findSiblings(memberId: number): number[] {
+  const parentIds = db
+    .select()
+    .from(relationships)
+    .where(and(eq(relationships.toMemberId, memberId), eq(relationships.type, 'child')))
+    .all()
+    .map((r) => r.fromMemberId)
+
+  if (parentIds.length === 0) return []
+
+  const siblingIds = new Set<number>()
+  for (const parentId of parentIds) {
+    db.select()
+      .from(relationships)
+      .where(and(eq(relationships.fromMemberId, parentId), eq(relationships.type, 'child')))
+      .all()
+      .forEach((r) => { if (r.toMemberId !== memberId) siblingIds.add(r.toMemberId) })
+  }
+  return [...siblingIds]
+}
+
 export function create(
   fromMemberId: number,
   toMemberId: number,
