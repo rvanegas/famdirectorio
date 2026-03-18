@@ -38,7 +38,7 @@ export function registerRelationshipCommand(program: Command): void {
       for (const sibId of siblingIds) {
         const sib = membersRepo.findById(sibId)
         const name = sib ? `${sib.firstName} ${sib.lastName ?? ''}` : `ID ${sibId}`
-        console.log(`  is sibling of  ${name} (ID ${sibId}) [inferred]`)
+        console.log(`  is sibling of  ${name} (ID ${sibId})`)
       }
     })
 
