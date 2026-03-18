@@ -34,7 +34,12 @@ export function registerRelationshipCommand(program: Command): void {
 
   relCmd
     .command('add <fromId> <toId> <type>')
-    .description('Add a relationship (type: parent|child|spouse|sibling)')
+    .description(
+      'Add a relationship between two members.\n' +
+      '  child:   fromId is the parent, toId is the child\n' +
+      '  spouse, sibling: symmetric (order does not matter)\n' +
+      '  Types: child|spouse|sibling',
+    )
     .action((fromId, toId, type) => {
       const validTypes = relationshipsSchema.type.enumValues
       if (!validTypes.includes(type as Relationship['type'])) {

@@ -35,7 +35,7 @@ fam member add                    # interactive prompts
 fam member edit <id>
 fam member delete <id>
 
-fam relationship add <fromId> <toId> <type>   # type: parent|child|spouse|sibling
+fam relationship add <fromId> <toId> <type>   # type: child|spouse|sibling  (child: fromId=parent, toId=child)
 fam relationship list <memberId>
 
 fam branch list

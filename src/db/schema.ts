@@ -27,7 +27,7 @@ export const relationships = sqliteTable('relationships', {
   toMemberId: integer('to_member_id')
     .notNull()
     .references(() => members.id),
-  type: text('type', { enum: ['parent', 'child', 'spouse', 'sibling'] }).notNull(),
+  type: text('type', { enum: ['child', 'spouse', 'sibling'] }).notNull(),
   notes: text('notes'),
   createdAt: text('created_at').default(sql`(datetime('now'))`),
 })
