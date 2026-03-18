@@ -7,6 +7,7 @@ import type { Member, Relationship } from '../core/types'
 import { renderCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
+import { renderIndexes } from './layouts/indexPage'
 
 // Assign distinct colors to Gen-2 sections
 const BRANCH_COLORS = [
@@ -109,7 +110,11 @@ function buildNuclearFamilies(
 
     if (heads.length < 2 && children.length === 0) continue
 
-    const gen2Id = resolveGen2Ancestor(member.id, parentMap, rootSet)
+    let gen2Id: number | null = null
+    for (const head of heads) {
+      gen2Id = resolveGen2Ancestor(head.id, parentMap, rootSet)
+      if (gen2Id) break
+    }
     const branch = gen2Id ? gen2Map.get(gen2Id) ?? null : null
 
     families.push({
@@ -206,6 +211,9 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       }
     }
   }
+
+  // --- Indexes ---
+  renderIndexes(doc, allMembers)
 
   doc.end()
 

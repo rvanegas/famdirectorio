@@ -84,16 +84,6 @@ export function renderMemberPage(
     textY += 16
   }
 
-  // Relation text below photo
-  if (member.relationText) {
-    const relY = photoY + PHOTO_SIZE + 12
-    doc
-      .font('Helvetica-Oblique')
-      .fontSize(10)
-      .fillColor('#666666')
-      .text(member.relationText, MARGIN, relY, { width: PHOTO_SIZE + 24 + textWidth })
-  }
-
   // Notes
   if (member.notes) {
     const notesY = Math.max(photoY + PHOTO_SIZE + 40, textY + 20)

@@ -173,12 +173,4 @@ function renderParentBlock(
     textY += 13
   }
 
-  // Relation text below photo
-  if (member.relationText) {
-    doc
-      .font('Helvetica-Oblique')
-      .fontSize(9)
-      .fillColor('#888888')
-      .text(member.relationText, x, y + PHOTO_SIZE + 6, { width: w })
-  }
 }

@@ -26,9 +26,6 @@ npm test
 ## CLI Usage
 
 ```
-fam import csv [file]             # import CSV into SQLite (default: data/duranmazuera-id.csv)
-fam import status                 # show record counts
-
 fam member list [--generation N] [--city name]
 fam member get <id>
 fam member add                    # interactive prompts
@@ -63,10 +60,6 @@ src/
 ├── core/
 │   ├── types.ts          # Domain interfaces (Member, Branch, Relationship, MediaAsset)
 │   └── *.repository.ts   # CRUD — members, relationships, branches, media
-├── import/
-│   ├── csv.parser.ts     # PapaParse wrapper
-│   ├── csv.mapper.ts     # raw CSV row → domain objects + relationship edges
-│   └── csv.importer.ts   # orchestrates parse → map → upsert + branch resolution
 ├── pdf/
 │   ├── generator.ts      # assembles full yearbook; queries via repositories
 │   └── layouts/          # cover, toc, memberPage, branchPage
@@ -77,7 +70,6 @@ src/
 ```
 
 **Data files**:
-- `data/duranmazuera-id.csv` — canonical import source (CSV `Ref`+`Rel` columns encode parent-child/spouse relationships)
 - `data/family.db` — SQLite database (gitignored)
 - `data/media/{memberId}/` — local photo storage referenced by member ID
 - `data/output/` — generated PDFs (gitignored)

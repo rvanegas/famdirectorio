@@ -17,8 +17,7 @@ export function registerTreeCommand(program: Command): void {
       console.log(chalk.red(`✗ ${orphans.length} member(s) not connected to the root:\n`))
       for (const m of orphans) {
         const name = `${m.firstName} ${m.lastName ?? ''}`.trim()
-        const hint = m.relationText ? chalk.dim(`  (${m.relationText})`) : ''
-        console.log(`  ID ${m.id}  ${name}${hint}`)
+        console.log(`  ID ${m.id}  ${name}`)
       }
       process.exit(1)
     })

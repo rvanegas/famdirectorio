@@ -1,5 +1,4 @@
 import { Command } from 'commander'
-import { registerImportCommand } from './commands/import.command'
 import { registerMemberCommand } from './commands/member.command'
 import { registerRelationshipCommand } from './commands/relationship.command'
 import { registerMediaCommand } from './commands/media.command'
@@ -14,7 +13,6 @@ export function createProgram(): Command {
     .description('Durán Mazuera family directory CLI')
     .version('1.0.0')
 
-  registerImportCommand(program)
   registerMemberCommand(program)
   registerRelationshipCommand(program)
   registerMediaCommand(program)

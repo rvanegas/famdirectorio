@@ -31,7 +31,6 @@ export function memberDetail(m: Member): string {
       `Alive:         ${m.isAlive ? 'Yes' : 'No'}`,
     `Attended 2023: ${m.attended2023 ? 'Yes' : 'No'}`,
     `Notes:         ${m.notes ?? '-'}`,
-    `Relation:      ${m.relationText ?? '-'}`,
   ]
   return lines.join('\n')
 }
