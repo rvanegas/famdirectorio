@@ -73,7 +73,6 @@ export async function importCsv(filePath: string): Promise<void> {
     const resolvableMembers = [...memberMap.values()].map((m) => ({
       id: m.id!,
       firstName: m.firstName,
-      generation: m.generation ?? null,
       relationText: m.relationText ?? null,
     }))
     const { relationships: inferred, unresolved } = resolveRelationships(

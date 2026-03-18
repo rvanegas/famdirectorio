@@ -32,7 +32,6 @@ export function mapRow(row: RawCsvRow): MappedRow {
     firstName: row.Nombre.trim(),
     lastName: row.Apellidos.trim() || null,
     relationText: row.Relación.trim() || null,
-    generation: row.Generación ? parseInt(row.Generación, 10) : null,
     email,
     phone: row.Número || null,
     city: row.Sede || null,

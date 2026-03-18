@@ -11,7 +11,7 @@ export function registerMemberCommand(program: Command): void {
   memberCmd
     .command('list')
     .description('List members')
-    .option('-g, --generation <n>', 'Filter by generation')
+    .option('-g, --generation <n>', 'Filter by generation (derived from relationships)')
     .option('-c, --city <name>', 'Filter by city (partial match)')
     .action((opts) => {
       let result

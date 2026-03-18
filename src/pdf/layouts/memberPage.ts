@@ -63,7 +63,6 @@ export function renderMemberPage(
   let textY = photoY + 34
 
   const details: [string, string | null | undefined][] = [
-    ['Generación', member.generation ? String(member.generation) : null],
     ['Ciudad', member.city],
     ['Ocupación', member.occupation],
     ['Email', member.email],

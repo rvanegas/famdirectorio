@@ -14,7 +14,6 @@ import type { NewRelationship } from '../db/schema'
 interface ResolvableMember {
   id: number
   firstName: string
-  generation: number | null
   relationText: string | null
 }
 
@@ -40,7 +39,6 @@ function buildNameMap(members: ResolvableMember[]): Map<string, ResolvableMember
 function resolveCandidate(
   rawName: string,
   rawQualifier: string | undefined,
-  childGeneration: number | null,
   nameMap: Map<string, ResolvableMember[]>,
 ): ResolvableMember | null {
   let candidates = nameMap.get(norm(rawName)) ?? []
@@ -55,13 +53,6 @@ function resolveCandidate(
     )
     if (filtered.length === 1) return filtered[0]
     if (filtered.length > 0) candidates = filtered
-  }
-
-  // Disambiguate: parent's generation should be one less than child's
-  if (childGeneration !== null) {
-    const genFiltered = candidates.filter((m) => m.generation === childGeneration - 1)
-    if (genFiltered.length === 1) return genFiltered[0]
-    if (genFiltered.length > 0) candidates = genFiltered
   }
 
   return null // still ambiguous — skip
@@ -104,7 +95,7 @@ export function resolveRelationships(
       if (m) {
         const parentName = m[1].trim()
         const qualifier = m[2]?.trim()
-        const parent = resolveCandidate(parentName, qualifier, member.generation, nameMap)
+        const parent = resolveCandidate(parentName, qualifier, nameMap)
         if (parent && parent.id !== member.id) {
           relationships.push({
             fromMemberId: parent.id,
@@ -131,7 +122,7 @@ export function resolveRelationships(
       if (m) {
         const spouseName = m[1].trim()
         const qualifier = m[2]?.trim()
-        const spouse = resolveCandidate(spouseName, qualifier, null, nameMap)
+        const spouse = resolveCandidate(spouseName, qualifier, nameMap)
         if (spouse && spouse.id !== member.id && !resolvedSpouses.has(spouse.id)) {
           relationships.push({
             fromMemberId: member.id,

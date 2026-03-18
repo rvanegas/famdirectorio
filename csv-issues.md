@@ -2,12 +2,6 @@
 
 Members with no parent, child, or spouse relationships (31 total).
 
-## Gen 2 — branch founders with no family edges
-
-| ID | Name |
-|----|------|
-| 105 | MARINA Durán Mazuera |
-
 ## Gen 3
 
 | ID | Name |
@@ -59,7 +53,3 @@ IDs: 63, 65, 72, 74, 76, 78
 
 ## Data quality issues to fix
 
-- **IDs 63, 65, 72, 74, 76, 78** — empty rows: no name, no generation, no relationships
-- **IDs 2 and 108** — duplicate: both named "Jose Fernando Estrada Duran" in Gen 5
-- **ID 106** — composite name: "Maria del Pilar y Willy Estrada" looks like two people merged into one record
-- **ID 107** — composite name: "GeignerPamela y jabrane Annaki" looks like two people merged into one record

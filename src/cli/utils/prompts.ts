@@ -15,11 +15,6 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     default: defaults.lastName ?? '',
   })
 
-  const generation = await input({
-    message: 'Generation (1-5):',
-    default: String(defaults.generation ?? ''),
-  })
-
   const city = await input({ message: 'City:', default: defaults.city ?? '' })
   const email = await input({ message: 'Email:', default: defaults.email ?? '' })
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
@@ -32,7 +27,6 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   return {
     firstName,
     lastName: lastName || null,
-    generation: generation ? parseInt(generation, 10) : null,
     city: city || null,
     email: email || null,
     phone: phone || null,

@@ -6,7 +6,6 @@ export const members = sqliteTable('members', {
   firstName: text('first_name').notNull(),
   lastName: text('last_name'),
   relationText: text('relation_text'),
-  generation: integer('generation'),
   email: text('email'),
   phone: text('phone'),
   city: text('city'),

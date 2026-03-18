@@ -5,7 +5,6 @@ export interface Member {
   firstName: string
   lastName: string | null
   relationText: string | null
-  generation: number | null
   email: string | null
   phone: string | null
   city: string | null

@@ -1,6 +1,7 @@
 import { db } from '../db/client'
 import { members } from '../db/schema'
 import { eq, like } from 'drizzle-orm'
+import { relationships } from '../db/schema'
 import type { Member } from './types'
 
 function toMember(row: typeof members.$inferSelect): Member {
@@ -21,7 +22,17 @@ export function findAll(): Member[] {
 }
 
 export function findByGeneration(generation: number): Member[] {
-  return db.select().from(members).where(eq(members.generation, generation)).all().map(toMember)
+  const parentMap = new Map<number, number>()
+  for (const rel of db.select().from(relationships).all()) {
+    if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
+  }
+  function depth(id: number): number {
+    let d = 1
+    let cur: number | undefined = id
+    while ((cur = parentMap.get(cur)) !== undefined) d++
+    return d
+  }
+  return db.select().from(members).all().filter(r => depth(r.id) === generation).map(toMember)
 }
 
 export function findByCity(city: string): Member[] {

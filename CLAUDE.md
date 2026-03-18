@@ -29,7 +29,7 @@ npm test
 fam import csv [file]             # import CSV into SQLite (default: data/duranmazuera-id.csv)
 fam import status                 # show record counts
 
-fam member list [--generation N] [--branch id] [--city name]
+fam member list [--generation N] [--city name]
 fam member get <id>
 fam member add                    # interactive prompts
 fam member edit <id>

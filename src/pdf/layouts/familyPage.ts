@@ -16,7 +16,6 @@ function branchColor(colorHex: string | null | undefined): string {
 export interface NuclearFamily {
   heads: Member[]    // 1 or 2 parents/heads
   children: Member[]
-  generation: number
   branch: BranchSection | null
 }
 
