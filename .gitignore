@@ -1,6 +1,4 @@
 node_modules/
 dist/
-data/family.db
-data/family.db-shm
-data/family.db-wal
+data/family.db*
 data/output/
