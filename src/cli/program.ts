@@ -4,6 +4,7 @@ import { registerMemberCommand } from './commands/member.command'
 import { registerRelationshipCommand } from './commands/relationship.command'
 import { registerMediaCommand } from './commands/media.command'
 import { registerPdfCommand } from './commands/pdf.command'
+import { registerTreeCommand } from './commands/tree.command'
 
 export function createProgram(): Command {
   const program = new Command()
@@ -18,6 +19,7 @@ export function createProgram(): Command {
   registerRelationshipCommand(program)
   registerMediaCommand(program)
   registerPdfCommand(program)
+  registerTreeCommand(program)
 
   return program
 }

@@ -9,6 +9,7 @@ function toMember(row: typeof members.$inferSelect): Member {
     ...row,
     attended2023: row.attended2023 === 1,
     isAlive: row.isAlive === 1,
+    isRoot: row.isRoot === 1,
   }
 }
 
@@ -22,17 +23,23 @@ export function findAll(): Member[] {
 }
 
 export function findByGeneration(generation: number): Member[] {
+  const allMembers = db.select().from(members).all()
+  const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
   const parentMap = new Map<number, number>()
   for (const rel of db.select().from(relationships).all()) {
     if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
   }
   function depth(id: number): number {
+    if (rootSet.has(id)) return 1
     let d = 1
     let cur: number | undefined = id
-    while ((cur = parentMap.get(cur)) !== undefined) d++
+    while ((cur = parentMap.get(cur)) !== undefined) {
+      d++
+      if (rootSet.has(cur)) break
+    }
     return d
   }
-  return db.select().from(members).all().filter(r => depth(r.id) === generation).map(toMember)
+  return allMembers.filter(r => depth(r.id) === generation).map(toMember)
 }
 
 export function findByCity(city: string): Member[] {
@@ -51,6 +58,7 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
       ...data,
       attended2023: data.attended2023 ? 1 : 0,
       isAlive: data.isAlive ? 1 : 0,
+      isRoot: data.isRoot ? 1 : 0,
     })
     .returning()
     .get()
@@ -58,13 +66,14 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
 }
 
 export function update(id: number, data: Partial<Omit<Member, 'id'>>): Member | null {
-  const { attended2023, isAlive, ...rest } = data
+  const { attended2023, isAlive, isRoot, ...rest } = data
   const row = db
     .update(members)
     .set({
       ...rest,
       ...(attended2023 !== undefined ? { attended2023: attended2023 ? 1 : 0 } : {}),
       ...(isAlive !== undefined ? { isAlive: isAlive ? 1 : 0 } : {}),
+      ...(isRoot !== undefined ? { isRoot: isRoot ? 1 : 0 } : {}),
       updatedAt: new Date().toISOString(),
     })
     .where(eq(members.id, id))

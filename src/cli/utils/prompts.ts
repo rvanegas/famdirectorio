@@ -35,5 +35,6 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     notes: notes || null,
     isAlive,
     attended2023,
+    isRoot: defaults.isRoot ?? false,
   }
 }

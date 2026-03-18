@@ -21,27 +21,32 @@ export interface GenerateOptions {
   outputPath?: string
 }
 
-// A member is Gen-2 if they have a parent who has no parent (i.e., the parent is a root).
-function isGen2(id: number, parentMap: Map<number, number>): boolean {
+// A member is Gen-2 if their parent is a root member.
+function isGen2(id: number, parentMap: Map<number, number>, rootSet: Set<number>): boolean {
   const parentId = parentMap.get(id)
-  return parentId !== undefined && !parentMap.has(parentId)
+  return parentId !== undefined && rootSet.has(parentId)
 }
 
-function depthFromRoot(id: number, parentMap: Map<number, number>): number {
+function depthFromRoot(id: number, parentMap: Map<number, number>, rootSet: Set<number>): number {
+  if (rootSet.has(id)) return 1
   let depth = 1
   let current: number | undefined = id
-  while ((current = parentMap.get(current)) !== undefined) depth++
+  while ((current = parentMap.get(current)) !== undefined) {
+    depth++
+    if (rootSet.has(current)) break
+  }
   return depth
 }
 
 function resolveGen2Ancestor(
   memberId: number,
   parentMap: Map<number, number>,
+  rootSet: Set<number>,
 ): number | null {
   let id: number | undefined = memberId
   for (let i = 0; i < 10; i++) {
     if (id === undefined) return null
-    if (isGen2(id, parentMap)) return id
+    if (isGen2(id, parentMap, rootSet)) return id
     id = parentMap.get(id)
   }
   return null
@@ -53,6 +58,7 @@ function buildNuclearFamilies(
   memberMap: Map<number, Member>,
   gen2Map: Map<number, BranchSection>,
   parentMap: Map<number, number>,
+  rootSet: Set<number>,
 ): NuclearFamily[] {
   const spouseMap = new Map<number, number[]>()
   const childrenMap = new Map<number, number[]>()
@@ -103,7 +109,7 @@ function buildNuclearFamilies(
 
     if (heads.length < 2 && children.length === 0) continue
 
-    const gen2Id = resolveGen2Ancestor(member.id, parentMap)
+    const gen2Id = resolveGen2Ancestor(member.id, parentMap, rootSet)
     const branch = gen2Id ? gen2Map.get(gen2Id) ?? null : null
 
     families.push({
@@ -143,8 +149,10 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
     if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
   }
 
+  const rootSet = new Set(allMembers.filter(m => m.isRoot).map(m => m.id))
+
   // Build Gen-2 sections with ad hoc colors
-  const gen2Members = allMembers.filter(m => isGen2(m.id, parentMap))
+  const gen2Members = allMembers.filter(m => isGen2(m.id, parentMap, rootSet))
   gen2Members.sort((a, b) => a.id - b.id)
   const gen2Map = new Map<number, BranchSection>()
   for (let i = 0; i < gen2Members.length; i++) {
@@ -162,7 +170,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
   // --- Family pages ---
   {
-    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap)
+    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet)
 
     // Group families by Gen-2 section (null = root)
     const familiesBySection = new Map<number | null, NuclearFamily[]>()
@@ -174,7 +182,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
     // Sort families within each group by depth from root
     for (const [, families] of familiesBySection) {
-      families.sort((a, b) => depthFromRoot(a.heads[0].id, parentMap) - depthFromRoot(b.heads[0].id, parentMap))
+      families.sort((a, b) => depthFromRoot(a.heads[0].id, parentMap, rootSet) - depthFromRoot(b.heads[0].id, parentMap, rootSet))
     }
 
     // First: root families (no section), sorted by generation
