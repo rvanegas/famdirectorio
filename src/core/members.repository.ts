@@ -42,6 +42,23 @@ export function findByGeneration(generation: number): Member[] {
   return allMembers.filter(r => depth(r.id) === generation).map(toMember)
 }
 
+export function getGeneration(id: number): number {
+  const allMembers = db.select().from(members).all()
+  const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
+  const parentMap = new Map<number, number>()
+  for (const rel of db.select().from(relationships).all()) {
+    if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
+  }
+  if (rootSet.has(id)) return 1
+  let d = 1
+  let cur: number | undefined = id
+  while ((cur = parentMap.get(cur)) !== undefined) {
+    d++
+    if (rootSet.has(cur)) break
+  }
+  return d
+}
+
 export function findByCity(city: string): Member[] {
   return db
     .select()
