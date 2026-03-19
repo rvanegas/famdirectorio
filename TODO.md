@@ -4,7 +4,7 @@ Future feature ideas for famdirectorio.
 
 ## PDF / Yearbook
 
-- Indices for email and phone
+- ~~Indices for email and phone~~ (done: contact index page added)
 - Clean up formatting
 - graphic design
 
@@ -17,7 +17,7 @@ Future feature ideas for famdirectorio.
 - Fields for anecdotes, events, and other trivia, yearbook-style
 - email and phone should have verification date
 - phone should always have intl format
-- nuclear family data should have veificatino date
+- ~~nuclear family data should have verification date~~ (done: `nuclear_families.verified_at` added)
 - most helpful collaborators indicated
 
 ## Media
