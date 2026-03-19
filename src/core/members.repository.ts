@@ -22,41 +22,51 @@ export function findAll(): Member[] {
   return db.select().from(members).all().map(toMember)
 }
 
-export function findByGeneration(generation: number): Member[] {
+function buildDepthFn(): (id: number) => number {
   const allMembers = db.select().from(members).all()
   const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
   const parentMap = new Map<number, number>()
+  const spouseMap = new Map<number, number[]>()
   for (const rel of db.select().from(relationships).all()) {
-    if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
-  }
-  function depth(id: number): number {
-    if (rootSet.has(id)) return 1
-    let d = 1
-    let cur: number | undefined = id
-    while ((cur = parentMap.get(cur)) !== undefined) {
-      d++
-      if (rootSet.has(cur)) break
+    if (rel.type === 'child') {
+      parentMap.set(rel.toMemberId, rel.fromMemberId)
+    } else if (rel.type === 'spouse') {
+      for (const [a, b] of [[rel.fromMemberId, rel.toMemberId], [rel.toMemberId, rel.fromMemberId]]) {
+        if (!spouseMap.has(a)) spouseMap.set(a, [])
+        spouseMap.get(a)!.push(b)
+      }
     }
-    return d
   }
+  function depth(id: number, visited = new Set<number>()): number {
+    if (rootSet.has(id)) return 1
+    visited.add(id)
+    const parent = parentMap.get(id)
+    if (parent !== undefined) {
+      let d = 1
+      let cur: number | undefined = id
+      while ((cur = parentMap.get(cur)) !== undefined) {
+        d++
+        if (rootSet.has(cur)) break
+      }
+      return d
+    }
+    // No parent — inherit generation from spouse
+    for (const spouseId of spouseMap.get(id) ?? []) {
+      if (!visited.has(spouseId)) return depth(spouseId, visited)
+    }
+    return 1
+  }
+  return depth
+}
+
+export function findByGeneration(generation: number): Member[] {
+  const allMembers = db.select().from(members).all()
+  const depth = buildDepthFn()
   return allMembers.filter(r => depth(r.id) === generation).map(toMember)
 }
 
 export function getGeneration(id: number): number {
-  const allMembers = db.select().from(members).all()
-  const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
-  const parentMap = new Map<number, number>()
-  for (const rel of db.select().from(relationships).all()) {
-    if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
-  }
-  if (rootSet.has(id)) return 1
-  let d = 1
-  let cur: number | undefined = id
-  while ((cur = parentMap.get(cur)) !== undefined) {
-    d++
-    if (rootSet.has(cur)) break
-  }
-  return d
+  return buildDepthFn()(id)
 }
 
 export function findByCity(city: string): Member[] {

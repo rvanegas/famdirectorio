@@ -2,3 +2,4 @@ node_modules/
 dist/
 data/family.db*
 data/output/
+data/*.txt
