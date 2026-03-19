@@ -158,8 +158,6 @@ function renderParentBlock(
   const details: [string, string | null | undefined][] = [
     ['Ciudad', member.city],
     ['Ocupación', member.occupation],
-    ['Email', member.email],
-    ['Teléfono', member.phone],
   ]
 
   for (const [label, value] of details) {
