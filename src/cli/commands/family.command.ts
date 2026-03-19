@@ -93,6 +93,34 @@ export function registerFamilyCommand(program: Command): void {
         }
       }
 
+      // --- Contact fields only for living members ---
+      const deadWithContact = sqlite
+        .prepare(`SELECT id, first_name, last_name, email, phone, occupation
+                  FROM members
+                  WHERE is_alive=0
+                    AND (
+                      (email    IS NOT NULL AND email    != '') OR
+                      (phone    IS NOT NULL AND phone    != '') OR
+                      (occupation IS NOT NULL AND occupation != '')
+                    )
+                  ORDER BY id`)
+        .all() as { id: number; first_name: string; last_name: string | null; email: string | null; phone: string | null; occupation: string | null }[]
+
+      if (deadWithContact.length === 0) {
+        console.log(chalk.green('✓ No deceased members have contact/occupation data'))
+      } else {
+        ok = false
+        console.log(chalk.red(`✗ ${deadWithContact.length} deceased member(s) with contact/occupation data:`))
+        for (const m of deadWithContact) {
+          const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
+          const fields = (['email', 'phone', 'occupation'] as const)
+            .filter(f => m[f])
+            .map(f => `${f}=${m[f]}`)
+            .join('  ')
+          console.log(`  ID ${m.id}  ${name}  — ${fields}`)
+        }
+      }
+
       if (!ok) process.exit(1)
     })
 }
