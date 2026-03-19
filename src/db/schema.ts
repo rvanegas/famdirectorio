@@ -31,6 +31,15 @@ export const relationships = sqliteTable('relationships', {
   createdAt: text('created_at').default(sql`(datetime('now'))`),
 })
 
+export const nuclearFamilies = sqliteTable('nuclear_families', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  parent1Id: integer('parent1_id').notNull().references(() => members.id),
+  parent2Id: integer('parent2_id').references(() => members.id),
+  mediaId: integer('media_id'),
+  verifiedAt: text('verified_at'),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+})
+
 export const media = sqliteTable('media', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   memberId: integer('member_id')
@@ -49,3 +58,5 @@ export type Relationship = typeof relationships.$inferSelect
 export type NewRelationship = typeof relationships.$inferInsert
 export type Media = typeof media.$inferSelect
 export type NewMedia = typeof media.$inferInsert
+export type NuclearFamily = typeof nuclearFamilies.$inferSelect
+export type NewNuclearFamily = typeof nuclearFamilies.$inferInsert

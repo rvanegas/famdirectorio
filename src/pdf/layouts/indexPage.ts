@@ -33,6 +33,10 @@ function fullName(m: Member): string {
   return `${m.firstName} ${m.lastName ?? ''}`.trim()
 }
 
+function lastFirst(m: Member): string {
+  return m.lastName ? `${m.lastName}, ${m.firstName}` : m.firstName
+}
+
 function renderIndexSection(
   doc: PDFDoc,
   title: string,
@@ -133,6 +137,82 @@ function renderIndexSection(
   }
 }
 
+function renderContactIndex(doc: PDFDoc, members: Member[]): void {
+  const { width, height } = doc.page
+  const colW = (width - MARGIN * 2 - COL_GAP) / 2
+
+  doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(24)
+    .fillColor(HEADING_COLOR)
+    .text('Índice de Contactos', MARGIN, 28, { width: width - MARGIN * 2 })
+  doc
+    .moveTo(MARGIN, 62)
+    .lineTo(width - MARGIN, 62)
+    .strokeColor('#dddddd')
+    .lineWidth(0.5)
+    .stroke()
+
+  const contacts = members
+    .filter(m => m.phone || m.email)
+    .slice()
+    .sort((a, b) =>
+      `${a.lastName ?? ''} ${a.firstName}`.localeCompare(`${b.lastName ?? ''} ${b.firstName}`, 'es')
+    )
+
+  let col = 0
+  let y = 76
+  const colX = () => MARGIN + col * (colW + COL_GAP)
+
+  const advanceCol = () => {
+    if (col === 0) {
+      col = 1
+      y = 76
+    } else {
+      doc.addPage()
+      doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+      col = 0
+      y = 76
+    }
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > height - MARGIN) advanceCol()
+  }
+
+  for (const m of contacts) {
+    const lines = (m.phone ? 1 : 0) + (m.email ? 1 : 0)
+    ensureSpace(14 + lines * 11)
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .fillColor(NAME_COLOR)
+      .text(lastFirst(m), colX() + 8, y, { width: colW - 8 })
+    y += 13
+
+    if (m.phone) {
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor(SUBTEXT_COLOR)
+        .text(m.phone, colX() + 16, y, { width: colW - 16 })
+      y += 11
+    }
+    if (m.email) {
+      doc
+        .font('Helvetica-Oblique')
+        .fontSize(8)
+        .fillColor(SUBTEXT_COLOR)
+        .text(m.email, colX() + 16, y, { width: colW - 16 })
+      y += 11
+    }
+
+    y += 4
+  }
+}
+
 export function renderIndexes(doc: PDFDoc, members: Member[]): void {
   // --- Occupation index ---
   doc.addPage()
@@ -141,4 +221,8 @@ export function renderIndexes(doc: PDFDoc, members: Member[]): void {
   // --- Location index ---
   doc.addPage()
   renderIndexSection(doc, 'Índice por Ciudad', buildIndex(members, m => m.city))
+
+  // --- Contact index ---
+  doc.addPage()
+  renderContactIndex(doc, members)
 }
