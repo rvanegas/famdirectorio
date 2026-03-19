@@ -1,24 +1,15 @@
-import Table from 'cli-table3'
 import chalk from 'chalk'
 import type { Member } from '../../core/types'
 
 export function membersTable(members: Member[]): string {
-  const table = new Table({
-    head: ['ID', 'Name', 'City', 'Alive'],
-    colWidths: [6, 30, 16, 7],
-    style: { head: ['cyan'] },
+  const header = chalk.cyan(
+    `${'ID'.padEnd(6)}${'Name'.padEnd(30)}${'City'.padEnd(16)}Alive`
+  )
+  const rows = members.map(m => {
+    const name = `${m.firstName} ${m.lastName ?? ''}`.trim()
+    return `${String(m.id).padEnd(6)}${name.padEnd(30)}${(m.city ?? '-').padEnd(16)}${m.isAlive ? 'Y' : 'N'}`
   })
-
-  for (const m of members) {
-    table.push([
-      m.id,
-      `${m.firstName} ${m.lastName ?? ''}`.trim(),
-      m.city ?? '-',
-      m.isAlive ? 'Y' : 'N',
-    ])
-  }
-
-  return table.toString()
+  return [header, ...rows].join('\n')
 }
 
 export function memberDetail(m: Member): string {
