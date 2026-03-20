@@ -64,21 +64,22 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       .text('Hijos', MARGIN, childLabelY)
 
     const childStartY = childLabelY + 18
+    const CHILD_COLS = 3
+    const COL_GAP = 16
     const CHILD_PHOTO = 64
-    const CHILD_NAME_H = 20
-    const CHILD_CARD_H = CHILD_PHOTO + CHILD_NAME_H + 6
-    const CHILD_CARD_W = 82
-    const cardsPerRow = Math.floor((width - MARGIN * 2) / CHILD_CARD_W)
+    const colWidth = (width - MARGIN * 2 - COL_GAP * (CHILD_COLS - 1)) / CHILD_COLS
+    const CHILD_CARD_H = CHILD_PHOTO + 8
 
     for (let i = 0; i < family.children.length; i++) {
       const child = family.children[i]
-      const row = Math.floor(i / cardsPerRow)
-      const col = i % cardsPerRow
-      const cx = MARGIN + col * CHILD_CARD_W
-      const cy = childStartY + row * (CHILD_CARD_H + 8)
+      const row = Math.floor(i / CHILD_COLS)
+      const col = i % CHILD_COLS
+      const cx = MARGIN + col * (colWidth + COL_GAP)
+      const cy = childStartY + row * (CHILD_CARD_H + 12)
 
       if (cy + CHILD_CARD_H > height - 50) break // don't overflow page
 
+      // Photo on the left
       const photoPath = child.photoPath ? path.resolve(process.cwd(), child.photoPath) : null
       if (photoPath && fs.existsSync(photoPath)) {
         doc.image(photoPath, cx, cy, {
@@ -90,23 +91,30 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
         doc.rect(cx, cy, CHILD_PHOTO, CHILD_PHOTO).fill('#eeeeee')
       }
 
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(8)
-        .fillColor('#1a1a2e')
-        .text(
-          `${child.firstName} ${child.lastName ?? ''}`.trim(),
-          cx,
-          cy + CHILD_PHOTO + 3,
-          { width: CHILD_PHOTO, align: 'center' },
-        )
+      // Name + city + occupation to the right of photo
+      const textX = cx + CHILD_PHOTO + 10
+      const textW = colWidth - CHILD_PHOTO - 10
 
-      if (child.city) {
-        doc
-          .font('Helvetica')
-          .fontSize(7)
-          .fillColor('#888888')
-          .text(child.city, cx, cy + CHILD_PHOTO + 12, { width: CHILD_PHOTO, align: 'center' })
+      // First name — bold, prominent
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1a1a2e')
+        .text(child.firstName, textX, cy, { width: textW })
+      // Last name — lighter weight, off-black, second row
+      if (child.lastName) {
+        doc.font('Helvetica').fontSize(8).fillColor('#4a4a4a')
+          .text(child.lastName, textX, cy + 14, { width: textW })
+      }
+
+      // Details pinned below name rows, explicit Y to prevent overwrite
+      let textY = cy + 30
+      const childDetails: [string, string | null | undefined][] = [
+        ['Ciudad', child.city],
+        ['Ocupación', child.occupation],
+      ]
+      for (const [, value] of childDetails) {
+        if (!value) continue
+        doc.font('Helvetica').fontSize(7.5).fillColor('#1a1a2e')
+          .text(value, textX, textY, { width: textW })
+        textY += 12
       }
     }
   }
@@ -147,28 +155,28 @@ function renderParentBlock(
   const textX = x + PHOTO_SIZE + 14
   const textW = w - PHOTO_SIZE - 14
 
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(16)
-    .fillColor('#1a1a2e')
-    .text(`${member.firstName} ${member.lastName ?? ''}`.trim(), textX, y, { width: textW })
+  // First name — bold, large
+  doc.font('Helvetica-Bold').fontSize(16).fillColor('#1a1a2e')
+    .text(member.firstName, textX, y, { width: textW })
+  // Last name — regular weight, off-black, second row
+  if (member.lastName) {
+    doc.font('Helvetica').fontSize(13).fillColor('#4a4a4a')
+      .text(member.lastName, textX, y + 20, { width: textW })
+  }
 
-  let textY = y + 24
+  // Details pinned below name rows, explicit Y to prevent overwrite
+  let textY = y + 42
 
   const details: [string, string | null | undefined][] = [
     ['Ciudad', member.city],
     ['Ocupación', member.occupation],
   ]
 
-  for (const [label, value] of details) {
+  for (const [, value] of details) {
     if (!value) continue
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .fillColor('#666666')
-      .text(`${label}:`, textX, textY, { continued: true, width: textW })
-    doc.font('Helvetica').fontSize(9).fillColor('#1a1a2e').text(` ${value}`, { width: textW })
-    textY += 13
+    doc.font('Helvetica').fontSize(9).fillColor('#1a1a2e')
+      .text(value, textX, textY, { width: textW })
+    textY += 14
   }
 
 }

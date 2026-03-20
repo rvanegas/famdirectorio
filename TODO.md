@@ -7,6 +7,10 @@ Future feature ideas for famdirectorio.
 - ~~Indices for email and phone~~ (done: contact index page added)
 - Clean up formatting
 - graphic design
+- language español
+- ciudad / occupación de hijos
+- three across layout
+- name should not overwrite
 
 ## CLI
 
@@ -19,6 +23,7 @@ Future feature ideas for famdirectorio.
 - phone should always have intl format
 - ~~nuclear family data should have verification date~~ (done: `nuclear_families.verified_at` added)
 - most helpful collaborators indicated
+- ~~Represent majority~~
 
 ## Media
 
@@ -30,4 +35,5 @@ Future feature ideas for famdirectorio.
 - logic for in-laws needs to be thought through.
 - preamble explaining function and vision for directory
 - normalize accents
-
+- ~~artista~~
+- move db out to enable repo clone 
