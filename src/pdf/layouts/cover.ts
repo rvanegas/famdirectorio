@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit'
+import { ROOT_COVER_COLOR } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -111,7 +112,7 @@ export function renderFamilyCover(
 ): void {
   const { width, height } = doc.page
 
-  doc.rect(0, 0, width, height).fill('#2E4057')
+  doc.rect(0, 0, width, height).fill(ROOT_COVER_COLOR)
 
   // Build lines: firstName / lastName per person, with · between people
   type Line = { text: string; bullet: boolean }

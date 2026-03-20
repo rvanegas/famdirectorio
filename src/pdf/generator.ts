@@ -9,12 +9,47 @@ import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
 import { renderIndexes } from './layouts/indexPage'
 
-// Assign distinct colors to Gen-2 sections
-const BRANCH_COLORS = [
-  '#2E4057', '#048A81', '#54C6EB', '#8EE3EF', '#CAF0F8',
-  '#5C4033', '#8D6E63', '#A1887F', '#795548', '#4E342E',
-  '#1B5E20', '#2E7D32', '#388E3C', '#43A047', '#1565C0',
-]
+// Base color matches the root family cover page background
+export const ROOT_COVER_COLOR = '#2E4057'
+
+function hexToHsv(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const v = max
+  const s = max === 0 ? 0 : (max - min) / max
+  let h = 0
+  if (max !== min) {
+    if (max === r) h = (60 * ((g - b) / (max - min)) + 360) % 360
+    else if (max === g) h = 60 * ((b - r) / (max - min)) + 120
+    else h = 60 * ((r - g) / (max - min)) + 240
+  }
+  return [h, s, v]
+}
+
+function hsvToHex(h: number, s: number, v: number): string {
+  const i = Math.floor(h / 60) % 6
+  const f = h / 60 - Math.floor(h / 60)
+  const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s)
+  const [r, g, b] = [
+    [v, t, p, p, q, v], [q, v, v, t, p, p], [p, p, q, v, v, t],
+  ].map(ch => ch[i])
+  const hex = (n: number) => Math.round(n * 255).toString(16).padStart(2, '0')
+  return `#${hex(r)}${hex(g)}${hex(b)}`
+}
+
+// Compute branch colors: same H/S as root cover, V linearly from 100% down to 50% of base V
+function branchColors(count: number): string[] {
+  const [h, s, v] = hexToHsv(ROOT_COVER_COLOR)
+  return Array.from({ length: count }, (_, i) => {
+    const t = count === 1 ? 0 : i / (count - 1)
+    const range = (1 - v) * 0.5
+    const vLow = Math.max(0, v - range * 0.2)
+    const vHigh = Math.min(1, v + range * 1.2)
+    return hsvToHex(h, s, vLow + (vHigh - vLow) * t)
+  })
+}
 
 export type BranchSection = { id: number; firstName: string; lastName: string; colorHex: string }
 
@@ -169,6 +204,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
     if (b.seniority === null) return -1
     return a.seniority - b.seniority
   })
+  const colors = branchColors(gen2Members.length)
   const gen2Map = new Map<number, BranchSection>()
   for (let i = 0; i < gen2Members.length; i++) {
     const m = gen2Members[i]
@@ -176,7 +212,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       id: m.id,
       firstName: m.firstName,
       lastName: m.lastName ?? '',
-      colorHex: BRANCH_COLORS[i % BRANCH_COLORS.length],
+      colorHex: colors[i],
     })
   }
 
