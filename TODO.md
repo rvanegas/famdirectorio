@@ -8,9 +8,10 @@ Future feature ideas for famdirectorio.
 - Clean up formatting
 - graphic design
 - language español
-- ciudad / occupación de hijos
-- three across layout
-- name should not overwrite
+- ~~ciudad / occupación de hijos~~
+- ~~three across layout~~
+- ~~name should not overwrite~~
+- front matter
 
 ## CLI
 
@@ -36,4 +37,4 @@ Future feature ideas for famdirectorio.
 - preamble explaining function and vision for directory
 - normalize accents
 - ~~artista~~
-- move db out to enable repo clone 
+- ~~move db out to enable repo clone~~

@@ -137,7 +137,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   fs.mkdirSync(outputDir, { recursive: true })
 
   const dateStr = new Date().toISOString().slice(0, 10)
-  const outputPath = options.outputPath ?? path.join(outputDir, `yearbook-${dateStr}.pdf`)
+  const outputPath = options.outputPath ?? path.join(outputDir, `Directorio Durán Mazuera ${dateStr}.pdf`)
 
   const doc = new PDFDocument({
     size: 'LETTER',
