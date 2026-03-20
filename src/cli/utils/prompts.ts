@@ -20,6 +20,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
   const occupation = await input({ message: 'Occupation:', default: defaults.occupation ?? '' })
   const notes = await input({ message: 'Notes:', default: defaults.notes ?? '' })
+  const seniorityStr = await input({ message: 'Seniority (birth order, 1=oldest; leave blank for none):', default: defaults.seniority?.toString() ?? '' })
   const isAlive = await confirm({ message: 'Currently alive?', default: defaults.isAlive ?? true })
   const attended2023 = await confirm({ message: 'Attended 2023 reunion?', default: defaults.attended2023 ?? false })
 
@@ -31,6 +32,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     phone: phone || null,
     occupation: occupation || null,
     notes: notes || null,
+    seniority: seniorityStr ? parseInt(seniorityStr, 10) : null,
     isAlive,
     attended2023,
     isRoot: defaults.isRoot ?? false,

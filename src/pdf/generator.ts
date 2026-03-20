@@ -106,7 +106,12 @@ function buildNuclearFamilies(
     const children = [...childIds]
       .map(id => memberMap.get(id))
       .filter(Boolean) as Member[]
-    children.sort((a, b) => a.id - b.id)
+    children.sort((a, b) => {
+      if (a.seniority === null && b.seniority === null) return a.id - b.id
+      if (a.seniority === null) return 1
+      if (b.seniority === null) return -1
+      return a.seniority - b.seniority
+    })
 
     if (heads.length < 2 && children.length === 0) continue
 
@@ -158,7 +163,12 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
   // Build Gen-2 sections with ad hoc colors
   const gen2Members = allMembers.filter(m => isGen2(m.id, parentMap, rootSet))
-  gen2Members.sort((a, b) => a.id - b.id)
+  gen2Members.sort((a, b) => {
+    if (a.seniority === null && b.seniority === null) return a.id - b.id
+    if (a.seniority === null) return 1
+    if (b.seniority === null) return -1
+    return a.seniority - b.seniority
+  })
   const gen2Map = new Map<number, BranchSection>()
   for (let i = 0; i < gen2Members.length; i++) {
     const m = gen2Members[i]

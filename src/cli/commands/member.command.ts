@@ -55,11 +55,17 @@ export function registerMemberCommand(program: Command): void {
       const childIds = rels.filter(r => r.type === 'child' && r.fromMemberId === member.id).map(r => r.toMemberId)
       const siblingIds = relRepo.findSiblings(member.id)
       const lookup = (ids: number[]) => ids.map(i => membersRepo.findById(i)).filter((m): m is NonNullable<typeof m> => m !== null)
+      const bySeniority = (a: { seniority: number | null; id: number }, b: { seniority: number | null; id: number }) => {
+        if (a.seniority === null && b.seniority === null) return a.id - b.id
+        if (a.seniority === null) return 1
+        if (b.seniority === null) return -1
+        return a.seniority - b.seniority
+      }
       console.log(memberShow(member, {
         generation,
         parents: lookup(parentIds),
         spouses: lookup(spouseIds),
-        children: lookup(childIds),
+        children: lookup(childIds).sort(bySeniority),
         siblings: lookup(siblingIds),
       }))
     })

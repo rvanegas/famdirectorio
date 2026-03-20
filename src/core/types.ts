@@ -11,6 +11,7 @@ export interface Member {
   attended2023: boolean
   isAlive: boolean
   isRoot: boolean
+  seniority: number | null
   photoPath: string | null
   notes: string | null
 }

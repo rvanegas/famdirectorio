@@ -20,7 +20,8 @@ export function memberDetail(m: Member): string {
     `Occupation:    ${m.occupation ?? '-'}`,
     `Email:         ${m.email ?? '-'}`,
     `Phone:         ${m.phone ?? '-'}`,
-      `Alive:         ${m.isAlive ? 'Yes' : 'No'}`,
+      `Seniority:     ${m.seniority ?? '-'}`,
+    `Alive:         ${m.isAlive ? 'Yes' : 'No'}`,
     `Attended 2023: ${m.attended2023 ? 'Yes' : 'No'}`,
     `Notes:         ${m.notes ?? '-'}`,
   ]
@@ -54,6 +55,7 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     fmt('Occupation:', m.occupation ?? '-'),
     fmt('Email:', m.email ?? '-'),
     fmt('Phone:', m.phone ?? '-'),
+    fmt('Seniority:', m.seniority !== null ? String(m.seniority) : '-'),
     fmt('Alive:', m.isAlive ? 'Yes' : 'No'),
     fmt('Attended 2023:', m.attended2023 ? 'Yes' : 'No'),
     fmt('Notes:', m.notes ?? '-'),
