@@ -30,7 +30,7 @@ export function renderMemberPage(
       .font('Helvetica')
       .fontSize(9)
       .fillColor(accent)
-      .text(branch.name.toUpperCase(), MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
+      .text(`${(branch.firstName + ' ' + branch.lastName).trim().toUpperCase()}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
   }
 
   // Photo placeholder or actual photo

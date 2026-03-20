@@ -10,20 +10,37 @@ export function renderBranchDivider(doc: PDFDoc, branch: BranchSection, memberCo
   // Full-page background
   doc.rect(0, 0, width, height).fill(accent)
 
-  // Branch name
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(56)
-    .fillColor('#ffffff')
-    .text(branch.name, 72, height * 0.35, { align: 'center', width: width - 144 })
+  const nameFontSize = 40
+  const nameLineHeight = nameFontSize * 1.35
+  const lines = [branch.firstName, branch.lastName].filter(Boolean)
+  const totalNameHeight = lines.length * nameLineHeight
+  const blockStart = (height - totalNameHeight) / 2 - 10
 
-  // Member count
+  // Label above the block
   doc
     .font('Helvetica')
     .fontSize(16)
-    .fillColor('rgba(255,255,255,0.75)')
-    .text(`${memberCount} miembros`, 0, height * 0.55, { align: 'center', width })
+    .fillColor('#ffffff', 0.75)
+    .text('Rama', 72, blockStart - 48, { align: 'center', width: width - 144 })
+
+  // Name lines
+  let y = blockStart
+  for (const line of lines) {
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(nameFontSize)
+      .fillColor('#ffffff')
+      .text(line, 72, y, { align: 'center', width: width - 144 })
+    y += nameLineHeight
+  }
+
+  // Member count below the block
+  doc
+    .font('Helvetica')
+    .fontSize(16)
+    .fillColor('#ffffff', 0.75)
+    .text(`${memberCount} miembros`, 0, y + 32, { align: 'center', width })
 
   // Bottom decoration
-  doc.rect(0, height - 8, width, 8).fill('rgba(255,255,255,0.3)')
+  doc.fillColor('#ffffff', 0.3).rect(0, height - 8, width, 8).fill()
 }

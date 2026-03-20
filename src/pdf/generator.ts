@@ -4,7 +4,7 @@ import path from 'path'
 import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import type { Member, Relationship } from '../core/types'
-import { renderCover } from './layouts/cover'
+import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
 import { renderIndexes } from './layouts/indexPage'
@@ -16,7 +16,7 @@ const BRANCH_COLORS = [
   '#1B5E20', '#2E7D32', '#388E3C', '#43A047', '#1565C0',
 ]
 
-export type BranchSection = { id: number; name: string; colorHex: string }
+export type BranchSection = { id: number; firstName: string; lastName: string; colorHex: string }
 
 export interface GenerateOptions {
   outputPath?: string
@@ -174,14 +174,38 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
     const m = gen2Members[i]
     gen2Map.set(m.id, {
       id: m.id,
-      name: `Rama ${m.firstName} ${m.lastName ?? ''}`.trim(),
+      firstName: m.firstName,
+      lastName: m.lastName ?? '',
       colorHex: BRANCH_COLORS[i % BRANCH_COLORS.length],
     })
   }
 
-  // --- Cover ---
+  // --- Cover (global) ---
   doc.addPage()
   renderCover(doc, allMembers.length)
+
+  // --- Foreword ---
+  const forewordPath = path.resolve(process.cwd(), 'data/foreword.md')
+  if (fs.existsSync(forewordPath)) {
+    doc.addPage()
+    renderForeword(doc, fs.readFileSync(forewordPath, 'utf8'))
+  }
+
+  // --- Root family cover ---
+  const rootMembers = allMembers.filter(m => rootSet.has(m.id))
+  const gen2MembersList = allMembers.filter(m => isGen2(m.id, parentMap, rootSet))
+  gen2MembersList.sort((a, b) => {
+    if (a.seniority === null && b.seniority === null) return a.id - b.id
+    if (a.seniority === null) return 1
+    if (b.seniority === null) return -1
+    return a.seniority - b.seniority
+  })
+  doc.addPage()
+  renderFamilyCover(
+    doc,
+    rootMembers.map(m => ({ firstName: m.firstName, lastName: m.lastName ?? '' })),
+    rootMembers.length + gen2MembersList.length,
+  )
 
   // --- Family pages ---
   {

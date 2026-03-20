@@ -32,7 +32,7 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       .font('Helvetica')
       .fontSize(9)
       .fillColor(accent)
-      .text(family.branch.name.toUpperCase(), MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
+      .text(`RAMA ${(family.branch.firstName + ' ' + family.branch.lastName).trim().toUpperCase()}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
   }
 
   // --- Parents section ---
