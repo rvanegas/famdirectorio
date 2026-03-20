@@ -2,8 +2,12 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema'
 import path from 'path'
+import os from 'os'
+import { mkdirSync } from 'fs'
 
-const dbPath = path.resolve(process.cwd(), 'data/family.db')
+const dbDir = path.join(os.homedir(), 'src', 'fam', 'db')
+mkdirSync(dbDir, { recursive: true })
+const dbPath = path.join(dbDir, 'family.db')
 const sqlite = new Database(dbPath)
 
 // Enable WAL mode for better concurrent read performance

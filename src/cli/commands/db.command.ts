@@ -1,8 +1,9 @@
 import { Command } from 'commander'
 import { copyFileSync } from 'fs'
 import path from 'path'
+import os from 'os'
 
-const dbPath = path.resolve(process.cwd(), 'data/family.db')
+const dbPath = path.join(os.homedir(), 'src', 'fam', 'db', 'family.db')
 
 function timestamp(): string {
   const now = new Date()
