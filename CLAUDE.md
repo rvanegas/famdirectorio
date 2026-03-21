@@ -16,7 +16,7 @@ node dist/index.js <command>
 # or after npm link: fam <command>
 
 # Database
-npm run db:push       # apply schema changes to data/family.db
+npm run db:push       # apply schema changes to ~/src/fam/db/family.db
 npm run db:generate   # generate migration files
 
 # Tests
@@ -35,8 +35,10 @@ fam member delete <id>
 fam relationship add <fromId> <toId> <type>   # type: child|spouse  (child: fromId=parent, toId=child; siblings are inferred)
 fam relationship list <memberId>
 
-fam branch list
-fam branch show <name>            # shows all members in branch by generation
+fam family sync                   # sync nuclear_families table from relationships
+fam family verify                 # verify tree integrity
+
+fam db backup                     # timestamped backup of family.db
 
 fam media add <memberId> <filePath> [--caption text] [--primary]
 fam media list <memberId>
@@ -58,22 +60,22 @@ src/
 │   ├── schema.ts         # Drizzle table definitions (single source of truth)
 │   └── client.ts         # exports db instance (better-sqlite3 + drizzle)
 ├── core/
-│   ├── types.ts          # Domain interfaces (Member, Branch, Relationship, MediaAsset)
-│   └── *.repository.ts   # CRUD — members, relationships, branches, media
+│   ├── types.ts          # Domain interfaces (Member, Relationship, MediaAsset, NuclearFamily)
+│   └── *.repository.ts   # CRUD — members, relationships, nuclearFamilies, media
 ├── pdf/
 │   ├── generator.ts      # assembles full yearbook; queries via repositories
-│   └── layouts/          # cover, toc, memberPage, branchPage
+│   └── layouts/          # cover, toc, familyPage, memberPage, branchPage, indexPage
 └── cli/
     ├── program.ts        # Commander root
-    ├── commands/         # one file per command group
+    ├── commands/         # one file per command group (member, relationship, family, media, pdf, db)
     └── utils/            # table formatters, interactive prompts
 ```
 
 **Data files**:
-- `data/family.db` — SQLite database (gitignored)
+- `~/src/fam/db/family.db` — SQLite database (outside repo; auto-created on first run)
 - `data/media/{memberId}/` — local photo storage referenced by member ID
 - `data/output/` — generated PDFs (gitignored)
 
-**Schema tables**: `members`, `relationships` (edge list), `branches` (14, one per Gen-2 child), `media`
+**Schema tables**: `members`, `relationships` (edge list), `nuclearFamilies` (derived from relationships; synced via `fam family sync`), `media`
 
 **PDF output**: `data/output/yearbook-YYYY-MM-DD.pdf`. Page order: Cover → TOC → per-branch divider → Gen 1-2 full pages → Gen 3+ 4-per-page grid.
