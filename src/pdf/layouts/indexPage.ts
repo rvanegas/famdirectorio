@@ -155,7 +155,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     .stroke()
 
   const contacts = members
-    .filter(m => m.phone || m.email)
+    .filter(m => m.phone || m.email || m.instagram)
     .slice()
     .sort((a, b) =>
       `${a.lastName ?? ''} ${a.firstName}`.localeCompare(`${b.lastName ?? ''} ${b.firstName}`, 'es')
@@ -182,7 +182,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
   }
 
   for (const m of contacts) {
-    const lines = (m.phone ? 1 : 0) + (m.email ? 1 : 0)
+    const lines = (m.phone ? 1 : 0) + (m.email ? 1 : 0) + (m.instagram ? 1 : 0)
     ensureSpace(14 + lines * 11)
 
     doc
@@ -206,6 +206,14 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
         .fontSize(8)
         .fillColor(SUBTEXT_COLOR)
         .text(m.email, colX() + 16, y, { width: colW - 16 })
+      y += 11
+    }
+    if (m.instagram) {
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor(SUBTEXT_COLOR)
+        .text(m.instagram, colX() + 16, y, { width: colW - 16 })
       y += 11
     }
 

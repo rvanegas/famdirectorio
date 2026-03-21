@@ -16,8 +16,9 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   })
 
   const city = await input({ message: 'City:', default: defaults.city ?? '' })
-  const email = await input({ message: 'Email:', default: defaults.email ?? '' })
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
+  const email = await input({ message: 'Email:', default: defaults.email ?? '' })
+  const instagram = await input({ message: 'Instagram:', default: defaults.instagram ?? '' })
   const occupation = await input({ message: 'Occupation:', default: defaults.occupation ?? '' })
   const notes = await input({ message: 'Notes:', default: defaults.notes ?? '' })
   const seniorityStr = await input({ message: 'Seniority (birth order, 1=oldest; leave blank for none):', default: defaults.seniority?.toString() ?? '' })
@@ -31,6 +32,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     email: email || null,
     phone: phone || null,
     occupation: occupation || null,
+    instagram: instagram || null,
     notes: notes || null,
     seniority: seniorityStr ? parseInt(seniorityStr, 10) : null,
     isAlive,

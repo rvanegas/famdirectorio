@@ -65,8 +65,9 @@ export function renderMemberPage(
   const details: [string, string | null | undefined][] = [
     ['Ciudad', member.city],
     ['Ocupación', member.occupation],
-    ['Email', member.email],
     ['Teléfono', member.phone],
+    ['Email', member.email],
+    ['Instagram', member.instagram],
   ]
 
   for (const [label, value] of details) {
