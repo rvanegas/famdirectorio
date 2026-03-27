@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
+import * as mediaRepo from '../core/media.repository'
 import type { Member, Relationship } from '../core/types'
 import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
@@ -186,6 +187,14 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
   // --- Collect data ---
   const allMembers = membersRepo.findAll()
+  // Enrich photoPath from media table for members that don't have one set directly
+  const primaryMedia = mediaRepo.findAll().filter(m => m.isPrimary)
+  const primaryPhotoMap = new Map(primaryMedia.map(m => [m.memberId, m.filePath]))
+  for (const m of allMembers) {
+    if (!m.photoPath && primaryPhotoMap.has(m.id)) {
+      m.photoPath = primaryPhotoMap.get(m.id)!
+    }
+  }
   const memberMap = new Map(allMembers.map(m => [m.id, m]))
   const allRels = relRepo.findAll()
 

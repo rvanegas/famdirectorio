@@ -9,6 +9,12 @@ type PDFDoc = InstanceType<typeof PDFDocument>
 const MARGIN = 60
 const PHOTO_SIZE = 100
 
+function resolvePhoto(p: string | null): string | null {
+  if (!p) return null
+  if (path.isAbsolute(p)) return p
+  return path.join(process.env.FAM_DIR!, p)
+}
+
 function branchColor(colorHex: string | null | undefined): string {
   return colorHex ?? '#1a1a2e'
 }
@@ -80,7 +86,7 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       if (cy + CHILD_CARD_H > height - 50) break // don't overflow page
 
       // Photo on the left
-      const photoPath = child.photoPath ? path.resolve(process.cwd(), child.photoPath) : null
+      const photoPath = resolvePhoto(child.photoPath ?? null)
       if (photoPath && fs.existsSync(photoPath)) {
         doc.image(photoPath, cx, cy, {
           width: CHILD_PHOTO,
@@ -135,7 +141,7 @@ function renderParentBlock(
   w: number,
 ): void {
   // Photo
-  const photoPath = member.photoPath ? path.resolve(process.cwd(), member.photoPath) : null
+  const photoPath = resolvePhoto(member.photoPath ?? null)
   if (photoPath && fs.existsSync(photoPath)) {
     doc.image(photoPath, x, y, {
       width: PHOTO_SIZE,

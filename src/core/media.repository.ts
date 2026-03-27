@@ -11,6 +11,15 @@ function toMedia(row: typeof media.$inferSelect): MediaAsset {
   }
 }
 
+export function findById(id: number): MediaAsset | null {
+  const row = db.select().from(media).where(eq(media.id, id)).get()
+  return row ? toMedia(row) : null
+}
+
+export function findAll(): MediaAsset[] {
+  return db.select().from(media).all().map(toMedia)
+}
+
 export function findByMember(memberId: number): MediaAsset[] {
   return db.select().from(media).where(eq(media.memberId, memberId)).all().map(toMedia)
 }

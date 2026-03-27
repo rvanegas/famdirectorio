@@ -7,7 +7,7 @@ Future feature ideas for famdirectorio.
 - ~~Indices for email and phone~~ (done: contact index page added)
 - Clean up formatting
 - graphic design
-- language español
+- ~~language español~~
 - ~~ciudad / occupación de hijos~~
 - ~~three across layout~~
 - ~~name should not overwrite~~
@@ -34,7 +34,7 @@ Future feature ideas for famdirectorio.
 ## Other
 
 - logic for in-laws needs to be thought through.
-- preamble explaining function and vision for directory
-- normalize accents
+- ~~preamble explaining function and vision for directory~~
+- ~~normalize accents~~
 - ~~artista~~
 - ~~move db out to enable repo clone~~

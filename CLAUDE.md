@@ -72,8 +72,9 @@ src/
 ```
 
 **Data files**:
-- `~/src/fam/db/family.db` — SQLite database (outside repo; auto-created on first run)
-- `data/media/{memberId}/` — local photo storage referenced by member ID
+- `$FAM_DIR/db/family.db` — SQLite database (outside repo; auto-created on first run)
+- `$FAM_DIR/media/{memberId}/` — local photo storage (outside repo; parallel to db)
+- `FAM_DIR` env var is required; the CLI exits with an error if it is not set
 - `data/output/` — generated PDFs (gitignored)
 
 **Schema tables**: `members`, `relationships` (edge list), `nuclearFamilies` (derived from relationships; synced via `fam family sync`), `media`
