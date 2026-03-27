@@ -151,10 +151,10 @@ export function registerEmailCommand(program: Command): void {
         return
       }
       const header = chalk.cyan(
-        `${'ID'.padEnd(6)}${'Date'.padEnd(20)}${'To'.padEnd(30)}${'Template'.padEnd(16)}${'PDF'.padEnd(30)}Status`
+        `${'ID'.padEnd(6)}${'MemberID'.padEnd(10)}${'Date'.padEnd(20)}${'To'.padEnd(30)}${'Template'.padEnd(16)}${'Status'.padEnd(10)}PDF`
       )
       const rows = entries.map(e =>
-        `${String(e.id).padEnd(6)}${(e.sentAt ?? '').padEnd(20)}${e.toEmail.padEnd(30)}${e.template.padEnd(16)}${(e.pdfName ?? '-').padEnd(30)}${e.status === 'sent' ? chalk.green('sent') : chalk.red('error')}${e.error ? chalk.dim(` — ${e.error}`) : ''}`
+        `${String(e.id).padEnd(6)}${String(e.memberId).padEnd(10)}${(e.sentAt ?? '').padEnd(20)}${e.toEmail.padEnd(30)}${e.template.padEnd(16)}${e.status === 'sent' ? chalk.green('sent'.padEnd(10)) : chalk.red('error'.padEnd(10))}${(e.pdfName?.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? e.pdfName ?? '-')}${e.error ? chalk.dim(` — ${e.error}`) : ''}`
       )
       console.log([header, ...rows].join('\n'))
       console.log(chalk.dim(`${entries.length} entries`))
