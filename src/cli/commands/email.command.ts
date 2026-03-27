@@ -2,6 +2,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import path from 'path'
 import * as membersRepo from '../../core/members.repository'
+import * as emailLogRepo from '../../core/emailLog.repository'
 import {
   resolveTemplate,
   resolveRecipientIds,
@@ -127,8 +128,10 @@ export function registerEmailCommand(program: Command): void {
           try {
             await sendEmail(member.email, rendered.subject, rendered.body, pdfPath)
             console.log(chalk.green('Sent.'))
+            emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
           } catch (err: unknown) {
             console.log(chalk.red(`Error: ${(err as Error).message}`))
+            emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'error', error: (err as Error).message })
           }
         }
       }
@@ -136,5 +139,24 @@ export function registerEmailCommand(program: Command): void {
       if (!opts.dryRun) {
         console.log(chalk.green('\nDone.'))
       }
+    })
+
+  emailCmd
+    .command('log')
+    .description('Show sent email history')
+    .action(() => {
+      const entries = emailLogRepo.findAll()
+      if (entries.length === 0) {
+        console.log(chalk.dim('No emails logged yet.'))
+        return
+      }
+      const header = chalk.cyan(
+        `${'ID'.padEnd(6)}${'Date'.padEnd(20)}${'To'.padEnd(30)}${'Template'.padEnd(16)}${'PDF'.padEnd(30)}Status`
+      )
+      const rows = entries.map(e =>
+        `${String(e.id).padEnd(6)}${(e.sentAt ?? '').padEnd(20)}${e.toEmail.padEnd(30)}${e.template.padEnd(16)}${(e.pdfName ?? '-').padEnd(30)}${e.status === 'sent' ? chalk.green('sent') : chalk.red('error')}${e.error ? chalk.dim(` — ${e.error}`) : ''}`
+      )
+      console.log([header, ...rows].join('\n'))
+      console.log(chalk.dim(`${entries.length} entries`))
     })
 }

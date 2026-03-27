@@ -54,6 +54,18 @@ export const media = sqliteTable('media', {
   createdAt: text('created_at').default(sql`(datetime('now'))`),
 })
 
+export const emailLogs = sqliteTable('email_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  memberId: integer('member_id').references(() => members.id),
+  toEmail: text('to_email').notNull(),
+  template: text('template').notNull(),
+  subject: text('subject').notNull(),
+  pdfName: text('pdf_name'),
+  status: text('status', { enum: ['sent', 'error'] }).notNull(),
+  error: text('error'),
+  sentAt: text('sent_at').default(sql`(datetime('now'))`),
+})
+
 export type Member = typeof members.$inferSelect
 export type NewMember = typeof members.$inferInsert
 export type Relationship = typeof relationships.$inferSelect
@@ -62,3 +74,5 @@ export type Media = typeof media.$inferSelect
 export type NewMedia = typeof media.$inferInsert
 export type NuclearFamily = typeof nuclearFamilies.$inferSelect
 export type NewNuclearFamily = typeof nuclearFamilies.$inferInsert
+export type EmailLog = typeof emailLogs.$inferSelect
+export type NewEmailLog = typeof emailLogs.$inferInsert
