@@ -13,6 +13,7 @@ export interface Member {
   isRoot: boolean
   seniority: number | null
   instagram: string | null
+  birthday: string | null
   photoPath: string | null
   notes: string | null
 }

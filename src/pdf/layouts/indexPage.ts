@@ -11,6 +11,11 @@ const SUBTEXT_COLOR = '#888888'
 
 type IndexEntry = { group: string; members: Member[] }
 
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+
 function buildIndex(members: Member[], key: (m: Member) => string | null): IndexEntry[] {
   const map = new Map<string, Member[]>()
   for (const m of members) {
@@ -26,6 +31,26 @@ function buildIndex(members: Member[], key: (m: Member) => string | null): Index
       members: ms.slice().sort((a, b) =>
         `${a.firstName} ${a.lastName ?? ''}`.localeCompare(`${b.firstName} ${b.lastName ?? ''}`, 'es')
       ),
+    }))
+}
+
+function buildBirthdayIndex(members: Member[]): IndexEntry[] {
+  const map = new Map<number, Member[]>() // keyed by month (1–12)
+  for (const m of members) {
+    if (!m.birthday) continue
+    const month = parseInt(m.birthday.slice(0, 2), 10)
+    if (!map.has(month)) map.set(month, [])
+    map.get(month)!.push(m)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([month, ms]) => ({
+      group: MONTH_NAMES[month - 1],
+      members: ms.slice().sort((a, b) => {
+        const dayA = parseInt(a.birthday!.slice(3, 5), 10)
+        const dayB = parseInt(b.birthday!.slice(3, 5), 10)
+        return dayA - dayB
+      }),
     }))
 }
 
@@ -137,6 +162,83 @@ function renderIndexSection(
   }
 }
 
+function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
+  const { width, height } = doc.page
+  const colW = (width - MARGIN * 2 - COL_GAP) / 2
+
+  doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(24)
+    .fillColor(HEADING_COLOR)
+    .text('Índice de Cumpleaños', MARGIN, 28, { width: width - MARGIN * 2 })
+  doc
+    .moveTo(MARGIN, 62)
+    .lineTo(width - MARGIN, 62)
+    .strokeColor('#dddddd')
+    .lineWidth(0.5)
+    .stroke()
+
+  const entries = buildBirthdayIndex(members)
+
+  let col = 0
+  let y = 76
+  const colX = () => MARGIN + col * (colW + COL_GAP)
+
+  const advanceCol = () => {
+    if (col === 0) {
+      col = 1
+      y = 76
+    } else {
+      doc.addPage()
+      doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+      col = 0
+      y = 76
+    }
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > height - MARGIN) advanceCol()
+  }
+
+  for (const entry of entries) {
+    ensureSpace(Math.min(16 + 14 + entry.members.length * 13, 30))
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .fillColor(HEADING_COLOR)
+      .text(entry.group, colX(), y, { width: colW })
+    y += 14
+
+    doc
+      .moveTo(colX(), y)
+      .lineTo(colX() + colW, y)
+      .strokeColor('#eeeeee')
+      .lineWidth(0.5)
+      .stroke()
+    y += 4
+
+    for (const m of entry.members) {
+      ensureSpace(13)
+      const day = m.birthday!.slice(3, 5)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(9)
+        .fillColor(SUBTEXT_COLOR)
+        .text(day, colX() + 8, y, { width: 18 })
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor(NAME_COLOR)
+        .text(fullName(m), colX() + 28, y, { width: colW - 28 })
+      y += 13
+    }
+
+    y += 6
+  }
+}
+
 function renderContactIndex(doc: PDFDoc, members: Member[]): void {
   const { width, height } = doc.page
   const colW = (width - MARGIN * 2 - COL_GAP) / 2
@@ -233,4 +335,8 @@ export function renderIndexes(doc: PDFDoc, members: Member[]): void {
   // --- Contact index ---
   doc.addPage()
   renderContactIndex(doc, members)
+
+  // --- Birthday index ---
+  doc.addPage()
+  renderBirthdayIndex(doc, members)
 }

@@ -14,6 +14,7 @@ export const members = sqliteTable('members', {
   isRoot: integer('is_root').default(0),
   seniority: integer('seniority'),
   instagram: text('instagram'),
+  birthday: text('birthday'),
   photoPath: text('photo_path'),
   notes: text('notes'),
   createdAt: text('created_at').default(sql`(datetime('now'))`),

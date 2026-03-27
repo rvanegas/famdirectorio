@@ -19,6 +19,14 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
   const email = await input({ message: 'Email:', default: defaults.email ?? '' })
   const instagram = await input({ message: 'Instagram:', default: defaults.instagram ?? '' })
+  const birthday = await input({
+    message: 'Birthday (MM-DD, leave blank for none):',
+    default: defaults.birthday ?? '',
+    validate: (v) => {
+      if (!v) return true
+      return /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v) || 'Enter MM-DD (e.g. 03-27)'
+    },
+  })
   const occupation = await input({ message: 'Occupation:', default: defaults.occupation ?? '' })
   const notes = await input({ message: 'Notes:', default: defaults.notes ?? '' })
   const seniorityStr = await input({ message: 'Seniority (birth order, 1=oldest; leave blank for none):', default: defaults.seniority?.toString() ?? '' })
@@ -33,6 +41,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     phone: phone || null,
     occupation: occupation || null,
     instagram: instagram || null,
+    birthday: birthday || null,
     notes: notes || null,
     seniority: seniorityStr ? parseInt(seniorityStr, 10) : null,
     isAlive,

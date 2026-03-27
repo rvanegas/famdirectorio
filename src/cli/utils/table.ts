@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import type { Member } from '../../core/types'
 
-type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'notes'
+type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes'
 
 const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; value: (m: Member) => string }> = {
   city:         { label: 'City',         width: 16, value: m => m.city ?? '-' },
@@ -12,6 +12,7 @@ const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; va
   occupation:   { label: 'Occupation',   width: 20, value: m => m.occupation ?? '-' },
   seniority:    { label: 'Seniority',    width: 10, value: m => m.seniority !== null ? String(m.seniority) : '-' },
   attended2023: { label: 'Att.2023',     width: 10, value: m => m.attended2023 ? 'Y' : 'N' },
+  birthday:     { label: 'Birthday',     width: 10, value: m => m.birthday ?? '-' },
   notes:        { label: 'Notes',        width: 30, value: m => m.notes ?? '-' },
 }
 
@@ -42,6 +43,7 @@ export function memberDetail(m: Member): string {
     `Phone:         ${m.phone ?? '-'}`,
     `Email:         ${m.email ?? '-'}`,
     `Instagram:     ${m.instagram ?? '-'}`,
+    `Birthday:      ${m.birthday ?? '-'}`,
     `Seniority:     ${m.seniority ?? '-'}`,
     `Alive:         ${m.isAlive ? 'Yes' : 'No'}`,
     `Attended 2023: ${m.attended2023 ? 'Yes' : 'No'}`,
@@ -78,6 +80,7 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     fmt('Phone:', m.phone ?? '-'),
     fmt('Email:', m.email ?? '-'),
     fmt('Instagram:', m.instagram ?? '-'),
+    fmt('Birthday:', m.birthday ?? '-'),
     fmt('Seniority:', m.seniority !== null ? String(m.seniority) : '-'),
     fmt('Alive:', m.isAlive ? 'Yes' : 'No'),
     fmt('Attended 2023:', m.attended2023 ? 'Yes' : 'No'),
