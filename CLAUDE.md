@@ -47,6 +47,10 @@ fam media set-primary <mediaId>
 fam pdf generate [--branch name] [--member id] [--output path]
 ```
 
+## Language
+
+CLI commands, error messages, and code are in English. Email template content (subject lines and body text) is in Spanish.
+
 ## Architecture
 
 **Stack**: TypeScript, Node.js 22, SQLite via Drizzle ORM + better-sqlite3, PDFKit, Commander.js

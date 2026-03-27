@@ -5,6 +5,7 @@ import { registerMediaCommand } from './commands/media.command'
 import { registerPdfCommand } from './commands/pdf.command'
 import { registerFamilyCommand } from './commands/family.command'
 import { registerDbCommand } from './commands/db.command'
+import { registerEmailCommand } from './commands/email.command'
 
 export function createProgram(): Command {
   const program = new Command()
@@ -20,6 +21,7 @@ export function createProgram(): Command {
   registerPdfCommand(program)
   registerFamilyCommand(program)
   registerDbCommand(program)
+  registerEmailCommand(program)
 
   return program
 }

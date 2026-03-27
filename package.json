@@ -18,7 +18,9 @@
   "license": "ISC",
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/mustache": "^4.2.6",
     "@types/node": "^20.14.2",
+    "@types/nodemailer": "^7.0.11",
     "@types/papaparse": "^5.3.14",
     "@types/pdfkit": "^0.17.5",
     "drizzle-kit": "^0.31.9",
@@ -33,6 +35,8 @@
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "drizzle-orm": "^0.45.1",
+    "mustache": "^4.2.0",
+    "nodemailer": "^8.0.4",
     "papaparse": "^5.4.1",
     "pdfkit": "^0.17.2",
     "zod": "^4.3.6"
