@@ -4,6 +4,42 @@ import * as relsRepo from '../../core/relationships.repository'
 import * as membersRepo from '../../core/members.repository'
 import type { Relationship } from '../../core/types'
 import { relationships as relationshipsSchema } from '../../db/schema'
+import { sqlite } from '../../db/client'
+
+function syncNuclearFamilyAfterRelationship(fromId: number, toId: number, type: Relationship['type']): void {
+  if (type === 'spouse') {
+    // If one member already has a single-parent nuclear family, update it to a couple
+    const existing = sqlite
+      .prepare(`SELECT id, parent1_id FROM nuclear_families WHERE parent2_id IS NULL AND parent1_id IN (?, ?)`)
+      .get(fromId, toId) as { id: number; parent1_id: number } | undefined
+    if (existing) {
+      const spouseId = existing.parent1_id === fromId ? toId : fromId
+      const p1 = Math.min(existing.parent1_id, spouseId)
+      const p2 = Math.max(existing.parent1_id, spouseId)
+      sqlite.prepare(`UPDATE nuclear_families SET parent1_id=?, parent2_id=? WHERE id=?`).run(p1, p2, existing.id)
+      console.log(chalk.green(`Updated nuclear family ${existing.id}: parents ${p1} & ${p2}`))
+    } else {
+      const p1 = Math.min(fromId, toId)
+      const p2 = Math.max(fromId, toId)
+      const alreadyExists = sqlite
+        .prepare(`SELECT id FROM nuclear_families WHERE parent1_id=? AND parent2_id=?`)
+        .get(p1, p2)
+      if (!alreadyExists) {
+        sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
+        console.log(chalk.green(`Created nuclear family: parents ${p1} & ${p2}`))
+      }
+    }
+  } else if (type === 'child') {
+    const parentId = fromId
+    const exists = sqlite
+      .prepare(`SELECT id FROM nuclear_families WHERE parent1_id=? OR parent2_id=?`)
+      .get(parentId, parentId)
+    if (!exists) {
+      sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, NULL)`).run(parentId)
+      console.log(chalk.green(`Created nuclear family: single parent ${parentId}`))
+    }
+  }
+}
 
 export function registerRelationshipCommand(program: Command): void {
   const relCmd = program.command('relationship').description('Manage family relationships')
@@ -56,8 +92,12 @@ export function registerRelationshipCommand(program: Command): void {
         console.error(chalk.red(`Invalid type "${type}". Must be: ${validTypes.join(', ')}`))
         process.exit(1)
       }
-      const rel = relsRepo.create(parseInt(fromId, 10), parseInt(toId, 10), type as Relationship['type'])
+      const fromNum = parseInt(fromId, 10)
+      const toNum = parseInt(toId, 10)
+      const relType = type as Relationship['type']
+      const rel = relsRepo.create(fromNum, toNum, relType)
       console.log(chalk.green(`Created relationship ID ${rel.id}: ${fromId} → ${type} → ${toId}`))
+      syncNuclearFamilyAfterRelationship(fromNum, toNum, relType)
     })
 
   relCmd

@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
+import { confirm } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
 
@@ -51,7 +52,7 @@ export function registerFamilyCommand(program: Command): void {
   famCmd
     .command('verify')
     .description('Verify tree connectivity and nuclear_families consistency')
-    .action(() => {
+    .action(async () => {
       let ok = true
 
       // --- Tree connectivity check ---
@@ -81,6 +82,17 @@ export function registerFamilyCommand(program: Command): void {
           for (const k of missing) {
             const [p1, p2] = k.split(':')
             console.log(`  parent1=${p1} parent2=${p2}`)
+          }
+          const create = await confirm({ message: `Create ${missing.length} missing nuclear famil${missing.length === 1 ? 'y' : 'ies'}?`, default: true })
+          if (create) {
+            for (const k of missing) {
+              const [p1str, p2str] = k.split(':')
+              const p1 = parseInt(p1str, 10)
+              const p2 = p2str === 'null' ? null : parseInt(p2str, 10)
+              sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
+            }
+            console.log(chalk.green(`Created ${missing.length} nuclear famil${missing.length === 1 ? 'y' : 'ies'}`))
+            if (extra.length === 0) ok = true
           }
         }
         if (extra.length > 0) {

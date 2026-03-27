@@ -38,3 +38,4 @@ Future feature ideas for famdirectorio.
 - ~~normalize accents~~
 - ~~artista~~
 - ~~move db out to enable repo clone~~
+- apodos, bdays
