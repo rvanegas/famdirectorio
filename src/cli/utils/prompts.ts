@@ -3,19 +3,27 @@ import type { Member } from '../../core/types'
 
 type MemberInput = Omit<Member, 'id' | 'photoPath'>
 
+// Allows typing ASCII escape sequences for Spanish diacritics:
+//   a' → á  e' → é  i' → í  o' → ó  u' → ú  n~ → ñ  u" → ü  (uppercase too)
+function decodeSpanish(text: string): string {
+  return text
+    .replace(/a'/g, 'á').replace(/A'/g, 'Á')
+    .replace(/e'/g, 'é').replace(/E'/g, 'É')
+    .replace(/i'/g, 'í').replace(/I'/g, 'Í')
+    .replace(/o'/g, 'ó').replace(/O'/g, 'Ó')
+    .replace(/u'/g, 'ú').replace(/U'/g, 'Ú')
+    .replace(/n~/g, 'ñ').replace(/N~/g, 'Ñ')
+    .replace(/u"/g, 'ü').replace(/U"/g, 'Ü')
+}
+
+function spanishInput(message: string, defaultValue?: string, opts: object = {}) {
+  return input({ message, default: defaultValue, transformer: decodeSpanish, ...opts }).then(decodeSpanish)
+}
+
 export async function promptMember(defaults: Partial<MemberInput> = {}): Promise<MemberInput> {
-  const firstName = await input({
-    message: 'First name:',
-    default: defaults.firstName,
-    required: true,
-  })
-
-  const lastName = await input({
-    message: 'Last name(s):',
-    default: defaults.lastName ?? '',
-  })
-
-  const city = await input({ message: 'City:', default: defaults.city ?? '' })
+  const firstName = await spanishInput('First name:', defaults.firstName, { required: true })
+  const lastName = await spanishInput('Last name(s):', defaults.lastName ?? '')
+  const city = await spanishInput('City:', defaults.city ?? '')
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
   const email = await input({ message: 'Email:', default: defaults.email ?? '' })
   const instagram = await input({ message: 'Instagram:', default: defaults.instagram ?? '' })
@@ -27,8 +35,8 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
       return /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v) || 'Enter MM-DD (e.g. 03-27)'
     },
   })
-  const occupation = await input({ message: 'Occupation:', default: defaults.occupation ?? '' })
-  const notes = await input({ message: 'Notes:', default: defaults.notes ?? '' })
+  const occupation = await spanishInput('Occupation:', defaults.occupation ?? '')
+  const notes = await spanishInput('Notes:', defaults.notes ?? '')
   const seniorityStr = await input({ message: 'Seniority (birth order, 1=oldest; leave blank for none):', default: defaults.seniority?.toString() ?? '' })
   const isAlive = await confirm({ message: 'Currently alive?', default: defaults.isAlive ?? true })
   const attended2023 = await confirm({ message: 'Attended 2023 reunion?', default: defaults.attended2023 ?? false })

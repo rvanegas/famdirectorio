@@ -51,6 +51,8 @@ fam pdf generate [--branch name] [--member id] [--output path]
 
 CLI commands, error messages, and code are in English. Email template content (subject lines and body text) is in Spanish.
 
+Member name/city/occupation/notes prompts accept ASCII escape sequences for diacritics: `a'`→á, `e'`→é, `i'`→í, `o'`→ó, `u'`→ú, `n~`→ñ, `u"`→ü (uppercase versions work too). Decoded in `src/cli/utils/prompts.ts`.
+
 ## Architecture
 
 **Stack**: TypeScript, Node.js 22, SQLite via Drizzle ORM + better-sqlite3, PDFKit, Commander.js
