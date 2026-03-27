@@ -1,13 +1,34 @@
 import chalk from 'chalk'
 import type { Member } from '../../core/types'
 
-export function membersTable(members: Member[]): string {
+type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'notes'
+
+const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; value: (m: Member) => string }> = {
+  city:         { label: 'City',         width: 16, value: m => m.city ?? '-' },
+  alive:        { label: 'Alive',        width:  6, value: m => m.isAlive ? 'Y' : 'N' },
+  email:        { label: 'Email',        width: 28, value: m => m.email ?? '-' },
+  phone:        { label: 'Phone',        width: 16, value: m => m.phone ?? '-' },
+  instagram:    { label: 'Instagram',    width: 20, value: m => m.instagram ?? '-' },
+  occupation:   { label: 'Occupation',   width: 20, value: m => m.occupation ?? '-' },
+  seniority:    { label: 'Seniority',    width: 10, value: m => m.seniority !== null ? String(m.seniority) : '-' },
+  attended2023: { label: 'Att.2023',     width: 10, value: m => m.attended2023 ? 'Y' : 'N' },
+  notes:        { label: 'Notes',        width: 30, value: m => m.notes ?? '-' },
+}
+
+export function membersTable(members: Member[], extraFields: string[] = []): string {
+  const extras = extraFields
+    .map(f => f as MemberField)
+    .filter(f => f in EXTRA_FIELD_CONFIG)
+    .map(f => EXTRA_FIELD_CONFIG[f])
+
   const header = chalk.cyan(
-    `${'ID'.padEnd(6)}${'Name'.padEnd(30)}${'City'.padEnd(16)}Alive`
+    `${'ID'.padEnd(6)}${'Name'.padEnd(30)}` +
+    extras.map(f => `  ${f.label.padEnd(f.width)}`).join('')
   )
   const rows = members.map(m => {
     const name = `${m.firstName} ${m.lastName ?? ''}`.trim()
-    return `${String(m.id).padEnd(6)}${name.padEnd(30)}${(m.city ?? '-').padEnd(16)}${m.isAlive ? 'Y' : 'N'}`
+    return `${String(m.id).padEnd(6)}${name.padEnd(30)}` +
+      extras.map(f => `  ${f.value(m).padEnd(f.width)}`).join('')
   })
   return [header, ...rows].join('\n')
 }

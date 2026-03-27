@@ -14,6 +14,7 @@ export function registerMemberCommand(program: Command): void {
     .description('List members')
     .option('-g, --generation <n>', 'Filter by generation (derived from relationships)')
     .option('-c, --city <name>', 'Filter by city (partial match)')
+    .option('-f, --fields <fields>', 'Extra fields to display (comma-separated: email,phone,instagram,occupation,seniority,attended2023,notes)')
     .action((opts) => {
       let result
       if (opts.generation) {
@@ -23,7 +24,8 @@ export function registerMemberCommand(program: Command): void {
       } else {
         result = membersRepo.findAll()
       }
-      console.log(membersTable(result))
+      const extraFields = opts.fields ? opts.fields.split(',').map((f: string) => f.trim()) : []
+      console.log(membersTable(result, extraFields))
       console.log(chalk.dim(`${result.length} members`))
     })
 
