@@ -3,12 +3,33 @@ import path from 'path'
 import nodemailer from 'nodemailer'
 import Mustache from 'mustache'
 import type { Member } from './types'
+import { findById } from './members.repository'
 
-export function resolveTemplate(name: string): { subject: string; body: string } {
+function emailTemplatesDir(): string {
   const famDir = process.env.FAM_DIR
   if (!famDir) throw new Error('FAM_DIR is not set')
+  return path.join(famDir, 'email-templates')
+}
 
-  const templatePath = path.join(famDir, 'email-templates', `${name}.txt`)
+export function resolveRecipientIds(name: string): number[] {
+  const idsPath = path.join(emailTemplatesDir(), `${name}.ids.txt`)
+  if (!fs.existsSync(idsPath)) {
+    throw new Error(`Recipients file not found: ${idsPath}`)
+  }
+  return fs
+    .readFileSync(idsPath, 'utf-8')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => {
+      const n = parseInt(l, 10)
+      if (isNaN(n)) throw new Error(`Invalid ID in recipients file: "${l}"`)
+      return n
+    })
+}
+
+export function resolveTemplate(name: string): { subject: string; body: string } {
+  const templatePath = path.join(emailTemplatesDir(), `${name}.txt`)
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template not found: ${templatePath}`)
   }
@@ -25,11 +46,38 @@ export function resolveTemplate(name: string): { subject: string; body: string }
   return { subject, body }
 }
 
+export function resolveSenders(): { name: string; email: string | null }[] {
+  const raw = process.env.FAM_SENDERS
+  if (!raw) return []
+
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const id = parseInt(p, 10)
+      if (isNaN(id)) throw new Error(`FAM_SENDERS: invalid member ID "${p}"`)
+      const member = findById(id)
+      if (!member) throw new Error(`FAM_SENDERS: member ${id} not found`)
+      return {
+        name: [member.firstName, member.lastName].filter(Boolean).join(' '),
+        email: member.email ?? null,
+      }
+    })
+}
+
 export function renderEmail(
   template: { subject: string; body: string },
-  member: Member
+  member: Member,
+  senders: { name: string; email: string | null }[]
 ): { subject: string; body: string } {
-  const view = { ...member }
+  const sendersView = Object.fromEntries(
+    senders.map((s, i) => [
+      `sender${i + 1}`,
+      s.email ? `${s.name} (${s.email})` : s.name,
+    ])
+  )
+  const view = { ...member, ...sendersView }
   return {
     subject: Mustache.render(template.subject, view),
     body: Mustache.render(template.body, view),
@@ -80,10 +128,9 @@ export async function sendEmail(
   attachmentPath: string
 ): Promise<void> {
   const transport = createTransport()
-  const from = process.env.FAM_SMTP_FROM ?? process.env.FAM_SMTP_USER
 
   await transport.sendMail({
-    from,
+    from: process.env.FAM_SMTP_USER,
     to,
     subject,
     text: body,
