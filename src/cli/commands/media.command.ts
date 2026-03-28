@@ -43,7 +43,6 @@ export function registerMediaCommand(program: Command): void {
     .command('add <memberId> <filePath>')
     .description('Attach a media file to a member')
     .option('-c, --caption <text>', 'Caption for this media')
-    .option('-p, --primary', 'Set as the primary photo')
     .action((memberId, filePath, opts) => {
       if (!fs.existsSync(filePath)) {
         console.error(chalk.red(`File not found: ${filePath}`))
@@ -64,15 +63,12 @@ export function registerMediaCommand(program: Command): void {
       const relPath = path.relative(process.env.FAM_DIR!, dest)
       const asset = mediaRepo.create(parseInt(memberId, 10), relPath, {
         caption: opts.caption,
-        isPrimary: opts.primary ?? false,
+        isPrimary: true,
         mediaType: 'photo',
       })
 
+      membersRepo.update(parseInt(memberId, 10), { photoPath: relPath })
       console.log(chalk.green(`Attached media ID ${asset.id} to member ${memberId}`))
-      if (opts.primary) {
-        membersRepo.update(parseInt(memberId, 10), { photoPath: relPath })
-        console.log(chalk.green('Set as primary photo'))
-      }
     })
 
   mediaCmd
