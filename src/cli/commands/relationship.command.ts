@@ -1,5 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
+import { confirm } from '@inquirer/prompts'
 import * as relsRepo from '../../core/relationships.repository'
 import * as membersRepo from '../../core/members.repository'
 import type { Relationship } from '../../core/types'
@@ -86,7 +87,7 @@ export function registerRelationshipCommand(program: Command): void {
       '  spouse: symmetric (order does not matter)\n' +
       '  Types: child|spouse  (siblings are inferred from shared parents)',
     )
-    .action((fromId, toId, type) => {
+    .action(async (fromId, toId, type) => {
       const validTypes = relationshipsSchema.type.enumValues
       if (!validTypes.includes(type as Relationship['type'])) {
         console.error(chalk.red(`Invalid type "${type}". Must be: ${validTypes.join(', ')}`))
@@ -98,6 +99,60 @@ export function registerRelationshipCommand(program: Command): void {
       const rel = relsRepo.create(fromNum, toNum, relType)
       console.log(chalk.green(`Created relationship ID ${rel.id}: ${fromId} → ${type} → ${toId}`))
       syncNuclearFamilyAfterRelationship(fromNum, toNum, relType)
+
+      if (relType === 'child') {
+        const parentRels = relsRepo.findByMember(fromNum)
+        const spouseRel = parentRels.find((r) => r.type === 'spouse')
+        if (spouseRel) {
+          const spouseId = spouseRel.fromMemberId === fromNum ? spouseRel.toMemberId : spouseRel.fromMemberId
+          const spouse = membersRepo.findById(spouseId)
+          const spouseName = spouse ? `${spouse.firstName} ${spouse.lastName ?? ''}`.trim() : `ID ${spouseId}`
+          const alsoAdd = await confirm({ message: `Also add child relationship from spouse ${spouseName} (ID ${spouseId})?`, default: true })
+          if (alsoAdd) {
+            const spouseRel2 = relsRepo.create(spouseId, toNum, 'child')
+            console.log(chalk.green(`Created relationship ID ${spouseRel2.id}: ${spouseId} → child → ${toId}`))
+            syncNuclearFamilyAfterRelationship(spouseId, toNum, 'child')
+          }
+        }
+      }
+
+      if (relType === 'spouse') {
+        const fromMember = membersRepo.findById(fromNum)
+        const toMember = membersRepo.findById(toNum)
+        const fromName = fromMember ? `${fromMember.firstName} ${fromMember.lastName ?? ''}`.trim() : `ID ${fromNum}`
+        const toName = toMember ? `${toMember.firstName} ${toMember.lastName ?? ''}`.trim() : `ID ${toNum}`
+
+        // Children of fromNum not yet linked to toNum
+        for (const childRel of relsRepo.findChildren(fromNum)) {
+          const childId = childRel.toMemberId
+          if (relsRepo.findByPair(toNum, childId, 'child').length === 0) {
+            const child = membersRepo.findById(childId)
+            const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
+            const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${toName}?`, default: true })
+            if (alsoAdd) {
+              const r = relsRepo.create(toNum, childId, 'child')
+              console.log(chalk.green(`Created relationship ID ${r.id}: ${toNum} → child → ${childId}`))
+              syncNuclearFamilyAfterRelationship(toNum, childId, 'child')
+            }
+          }
+        }
+
+        // Children of toNum not yet linked to fromNum
+        for (const childRel of relsRepo.findChildren(toNum)) {
+          const childId = childRel.toMemberId
+          if (relsRepo.findByPair(fromNum, childId, 'child').length === 0) {
+            const child = membersRepo.findById(childId)
+            const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
+            const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${fromName}?`, default: true })
+            if (alsoAdd) {
+              const r = relsRepo.create(fromNum, childId, 'child')
+              console.log(chalk.green(`Created relationship ID ${r.id}: ${fromNum} → child → ${childId}`))
+              syncNuclearFamilyAfterRelationship(fromNum, childId, 'child')
+            }
+          }
+        }
+      }
+
       membersRepo.syncGenerations()
     })
 
