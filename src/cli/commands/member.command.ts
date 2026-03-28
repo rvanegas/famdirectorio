@@ -68,7 +68,7 @@ export function registerMemberCommand(program: Command): void {
         parents: lookup(parentIds),
         spouses: lookup(spouseIds),
         children: lookup(childIds).sort(bySeniority),
-        siblings: lookup(siblingIds),
+        siblings: lookup(siblingIds).sort(bySeniority),
       }))
     })
 

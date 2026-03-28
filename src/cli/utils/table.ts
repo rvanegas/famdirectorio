@@ -71,6 +71,12 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
   const nameList = (ms: Member[]) =>
     ms.length === 0 ? '-' : ms.map(x => `${memberName(x)} (${x.id})`).join('\n               ')
 
+  const nameListOrdered = (ms: Member[]) =>
+    ms.length === 0 ? '-' : ms.map(x => {
+      const order = x.seniority !== null ? chalk.dim(` #${x.seniority}`) : ''
+      return `${memberName(x)} (${x.id})${order}`
+    }).join('\n               ')
+
   const lines = [
     chalk.bold(`${memberName(m)}  ${chalk.dim(`#${m.id}`)}`),
     '',
@@ -88,8 +94,8 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     '',
     fmt('Parents:', nameList(rel.parents)),
     fmt('Spouse(s):', nameList(rel.spouses)),
-    fmt('Children:', nameList(rel.children)),
-    fmt('Siblings:', nameList(rel.siblings)),
+    fmt('Children:', nameListOrdered(rel.children)),
+    fmt('Siblings:', nameListOrdered(rel.siblings)),
   ]
   return lines.join('\n')
 }
