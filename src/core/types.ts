@@ -28,7 +28,8 @@ export interface Relationship {
 
 export interface MediaAsset {
   id: number
-  memberId: number
+  memberId: number | null
+  familyId: number | null
   filePath: string
   mediaType: 'photo' | 'document' | 'video' | null
   caption: string | null

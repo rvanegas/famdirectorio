@@ -4,27 +4,37 @@ import path from 'path'
 import fs from 'fs'
 import * as mediaRepo from '../../core/media.repository'
 import * as membersRepo from '../../core/members.repository'
+import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
 
 export function registerMediaCommand(program: Command): void {
-  const mediaCmd = program.command('media').description('Manage member media (photos, etc.)')
+  const mediaCmd = program.command('media').description('Manage media (photos, etc.)')
 
   mediaCmd
-    .command('list [memberId]')
-    .description('List media for a member, or all media with -a/--all')
-    .option('-a, --all', 'List all media across all members')
-    .action((memberId, opts) => {
+    .command('list [ownerId]')
+    .description('List media for a member or family; use --family for family, -a/--all for everything')
+    .option('-a, --all', 'List all media across all members and families')
+    .option('-f, --family', 'Treat ownerId as a nuclear family ID')
+    .action((ownerId, opts) => {
       let assets
       if (opts.all) {
         assets = mediaRepo.findAll()
-      } else if (memberId) {
-        const member = membersRepo.findById(parseInt(memberId, 10))
-        if (!member) {
-          console.error(chalk.red(`Member ${memberId} not found`))
+      } else if (ownerId && opts.family) {
+        const id = parseInt(ownerId, 10)
+        const family = nuclearFamiliesRepo.findById(id)
+        if (!family) {
+          console.error(chalk.red(`Nuclear family ${ownerId} not found`))
           process.exit(1)
         }
-        assets = mediaRepo.findByMember(parseInt(memberId, 10))
+        assets = mediaRepo.findByFamily(id)
+      } else if (ownerId) {
+        const member = membersRepo.findById(parseInt(ownerId, 10))
+        if (!member) {
+          console.error(chalk.red(`Member ${ownerId} not found`))
+          process.exit(1)
+        }
+        assets = mediaRepo.findByMember(parseInt(ownerId, 10))
       } else {
-        console.error(chalk.red('Provide a memberId or use --all'))
+        console.error(chalk.red('Provide an ownerId (member or --family), or use --all'))
         process.exit(1)
       }
       if (assets.length === 0) {
@@ -33,42 +43,58 @@ export function registerMediaCommand(program: Command): void {
       }
       for (const a of assets) {
         const primary = a.isPrimary ? chalk.green(' [PRIMARY]') : ''
-        const memberLabel = opts.all ? chalk.dim(`  member ${a.memberId}`) : ''
-        console.log(`  ID ${a.id}${primary}${memberLabel}  ${a.mediaType ?? 'photo'}  ${a.filePath}`)
+        let ownerLabel = ''
+        if (opts.all) {
+          ownerLabel = a.memberId != null
+            ? chalk.dim(`  member ${a.memberId}`)
+            : chalk.dim(`  family ${a.familyId}`)
+        }
+        console.log(`  ID ${a.id}${primary}${ownerLabel}  ${a.mediaType ?? 'photo'}  ${a.filePath}`)
         if (a.caption) console.log(`        "${a.caption}"`)
       }
     })
 
   mediaCmd
-    .command('add <memberId> <filePath>')
-    .description('Attach a media file to a member')
+    .command('add <ownerId> <filePath>')
+    .description('Attach a media file to a member (default) or nuclear family (--family)')
     .option('-c, --caption <text>', 'Caption for this media')
-    .action((memberId, filePath, opts) => {
+    .option('-f, --family', 'Treat ownerId as a nuclear family ID')
+    .action((ownerId, filePath, opts) => {
       if (!fs.existsSync(filePath)) {
         console.error(chalk.red(`File not found: ${filePath}`))
         process.exit(1)
       }
-      const member = membersRepo.findById(parseInt(memberId, 10))
-      if (!member) {
-        console.error(chalk.red(`Member ${memberId} not found`))
-        process.exit(1)
+
+      const id = parseInt(ownerId, 10)
+
+      if (opts.family) {
+        const family = nuclearFamiliesRepo.findById(id)
+        if (!family) {
+          console.error(chalk.red(`Nuclear family ${ownerId} not found`))
+          process.exit(1)
+        }
+        const mediaDir = path.join(process.env.FAM_DIR!, 'media', `family-${ownerId}`)
+        fs.mkdirSync(mediaDir, { recursive: true })
+        const dest = path.join(mediaDir, path.basename(filePath))
+        fs.copyFileSync(filePath, dest)
+        const relPath = path.relative(process.env.FAM_DIR!, dest)
+        const asset = mediaRepo.create(relPath, { familyId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        console.log(chalk.green(`Attached media ID ${asset.id} to family ${ownerId}`))
+      } else {
+        const member = membersRepo.findById(id)
+        if (!member) {
+          console.error(chalk.red(`Member ${ownerId} not found`))
+          process.exit(1)
+        }
+        const mediaDir = path.join(process.env.FAM_DIR!, 'media', ownerId)
+        fs.mkdirSync(mediaDir, { recursive: true })
+        const dest = path.join(mediaDir, path.basename(filePath))
+        fs.copyFileSync(filePath, dest)
+        const relPath = path.relative(process.env.FAM_DIR!, dest)
+        const asset = mediaRepo.create(relPath, { memberId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        membersRepo.update(id, { photoPath: relPath })
+        console.log(chalk.green(`Attached media ID ${asset.id} to member ${ownerId}`))
       }
-
-      // Copy file to $FAM_DIR/media/{memberId}/
-      const mediaDir = path.join(process.env.FAM_DIR!, 'media', memberId)
-      fs.mkdirSync(mediaDir, { recursive: true })
-      const dest = path.join(mediaDir, path.basename(filePath))
-      fs.copyFileSync(filePath, dest)
-
-      const relPath = path.relative(process.env.FAM_DIR!, dest)
-      const asset = mediaRepo.create(parseInt(memberId, 10), relPath, {
-        caption: opts.caption,
-        isPrimary: true,
-        mediaType: 'photo',
-      })
-
-      membersRepo.update(parseInt(memberId, 10), { photoPath: relPath })
-      console.log(chalk.green(`Attached media ID ${asset.id} to member ${memberId}`))
     })
 
   mediaCmd
@@ -81,7 +107,9 @@ export function registerMediaCommand(program: Command): void {
         process.exit(1)
       }
       mediaRepo.setPrimary(parseInt(mediaId, 10))
-      membersRepo.update(asset.memberId, { photoPath: asset.filePath })
+      if (asset.memberId != null) {
+        membersRepo.update(asset.memberId, { photoPath: asset.filePath })
+      }
       console.log(chalk.green(`Set media ${mediaId} as primary`))
     })
 }
