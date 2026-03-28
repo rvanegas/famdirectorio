@@ -4,7 +4,8 @@ import path from 'path'
 import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
-import type { Member, Relationship } from '../core/types'
+import * as nucFamRepo from '../core/nuclearFamilies.repository'
+import type { Member, Relationship, MediaAsset } from '../core/types'
 import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
@@ -96,6 +97,8 @@ function buildNuclearFamilies(
   gen2Map: Map<number, BranchSection>,
   parentMap: Map<number, number>,
   rootSet: Set<number>,
+  dbFamilies: nucFamRepo.NuclearFamilyRow[],
+  familyMediaMap: Map<number, MediaAsset[]>,
 ): NuclearFamily[] {
   const spouseMap = new Map<number, number[]>()
   const childrenMap = new Map<number, number[]>()
@@ -158,10 +161,18 @@ function buildNuclearFamilies(
     }
     const branch = gen2Id ? gen2Map.get(gen2Id) ?? null : null
 
+    const headIds = new Set(heads.map(h => h.id))
+    const dbFamily = dbFamilies.find(f => {
+      const p1 = f.parent1Id, p2 = f.parent2Id ?? null
+      return headIds.has(p1) && (p2 === null ? headIds.size === 1 : headIds.has(p2))
+    })
+    const familyMedia = dbFamily ? (familyMediaMap.get(dbFamily.id) ?? []) : []
+
     families.push({
       heads,
       children,
       branch,
+      familyMedia,
     })
   }
 
@@ -254,7 +265,13 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
   // --- Family pages ---
   {
-    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet)
+    const dbFamilies = nucFamRepo.findAll()
+    const familyMediaMap = new Map<number, MediaAsset[]>()
+    for (const f of dbFamilies) {
+      const assets = mediaRepo.findByFamily(f.id)
+      if (assets.length > 0) familyMediaMap.set(f.id, assets)
+    }
+    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet, dbFamilies, familyMediaMap)
 
     // Group families by Gen-2 section (null = root)
     const familiesBySection = new Map<number | null, NuclearFamily[]>()
@@ -264,9 +281,21 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       familiesBySection.get(key)!.push(family)
     }
 
-    // Sort families within each group by depth from root
+    // Sort families: primary by generation (depth, spouse-aware), secondary by seniority
+    const getDepth = membersRepo.buildDepthFn()
+    const familySortKey = (f: NuclearFamily) => {
+      const head = f.heads[0]
+      const depth = getDepth(head.id)
+      const seniority = head.seniority ?? Infinity
+      return [depth, seniority, head.id] as [number, number, number]
+    }
+    const cmpFamilies = (a: NuclearFamily, b: NuclearFamily) => {
+      const [ad, as_, ai] = familySortKey(a)
+      const [bd, bs, bi] = familySortKey(b)
+      return ad !== bd ? ad - bd : as_ !== bs ? as_ - bs : ai - bi
+    }
     for (const [, families] of familiesBySection) {
-      families.sort((a, b) => depthFromRoot(a.heads[0].id, parentMap, rootSet) - depthFromRoot(b.heads[0].id, parentMap, rootSet))
+      families.sort(cmpFamilies)
     }
 
     // First: root families (no section), sorted by generation

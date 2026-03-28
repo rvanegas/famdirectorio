@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
-import type { Member } from '../../core/types'
+import type { Member, MediaAsset } from '../../core/types'
 import type { BranchSection } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
@@ -23,6 +23,7 @@ export interface NuclearFamily {
   heads: Member[]    // 1 or 2 parents/heads
   children: Member[]
   branch: BranchSection | null
+  familyMedia: MediaAsset[]
 }
 
 export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
@@ -121,6 +122,54 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
         doc.font('Helvetica').fontSize(7.5).fillColor('#1a1a2e')
           .text(value, textX, textY, { width: textW })
         textY += 12
+      }
+    }
+  }
+
+  // --- Family media section ---
+  const photoMedia = family.familyMedia.filter(m => m.mediaType === 'photo' || m.mediaType == null)
+  if (photoMedia.length > 0) {
+    // Determine Y start: after children or after separator if no children
+    let mediaStartY: number
+    if (family.children.length > 0) {
+      const CHILD_COLS = 3
+      const COL_GAP = 16
+      const CHILD_PHOTO = 64
+      const CHILD_CARD_H = CHILD_PHOTO + 8
+      const childCount = Math.min(family.children.length, /* same cap */ family.children.length)
+      const childRows = Math.ceil(childCount / CHILD_COLS)
+      const childLabelY = sepY + 12
+      const childStartY = childLabelY + 18
+      mediaStartY = childStartY + childRows * (CHILD_CARD_H + 12) + 8
+    } else {
+      mediaStartY = sepY + 12
+    }
+
+    const MEDIA_COLS = 4
+    const MEDIA_GAP = 10
+    const mediaColW = (width - MARGIN * 2 - MEDIA_GAP * (MEDIA_COLS - 1)) / MEDIA_COLS
+
+    for (let i = 0; i < photoMedia.length; i++) {
+      const asset = photoMedia[i]
+      const row = Math.floor(i / MEDIA_COLS)
+      const col = i % MEDIA_COLS
+      const mx = MARGIN + col * (mediaColW + MEDIA_GAP)
+      const my = mediaStartY + row * (PHOTO_SIZE + MEDIA_GAP)
+
+      if (my + PHOTO_SIZE > height - 50) break
+
+      const filePath = path.isAbsolute(asset.filePath)
+        ? asset.filePath
+        : path.join(process.env.FAM_DIR!, asset.filePath)
+
+      if (fs.existsSync(filePath)) {
+        doc.image(filePath, mx, my, {
+          width: PHOTO_SIZE,
+          height: PHOTO_SIZE,
+          cover: [PHOTO_SIZE, PHOTO_SIZE],
+        })
+      } else {
+        doc.rect(mx, my, PHOTO_SIZE, PHOTO_SIZE).fill('#eeeeee')
       }
     }
   }

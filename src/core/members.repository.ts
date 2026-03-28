@@ -22,7 +22,7 @@ export function findAll(): Member[] {
   return db.select().from(members).all().map(toMember)
 }
 
-function buildDepthFn(): (id: number) => number {
+export function buildDepthFn(): (id: number) => number {
   const allMembers = db.select().from(members).all()
   const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
   const parentMap = new Map<number, number>()
