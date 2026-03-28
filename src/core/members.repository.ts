@@ -22,7 +22,7 @@ export function findAll(): Member[] {
   return db.select().from(members).all().map(toMember)
 }
 
-export function buildDepthFn(): (id: number) => number {
+function buildDepthFn(): (id: number) => number {
   const allMembers = db.select().from(members).all()
   const rootSet = new Set(allMembers.filter(m => m.isRoot === 1).map(m => m.id))
   const parentMap = new Map<number, number>()
@@ -42,13 +42,7 @@ export function buildDepthFn(): (id: number) => number {
     visited.add(id)
     const parent = parentMap.get(id)
     if (parent !== undefined) {
-      let d = 1
-      let cur: number | undefined = id
-      while ((cur = parentMap.get(cur)) !== undefined) {
-        d++
-        if (rootSet.has(cur)) break
-      }
-      return d
+      return 1 + depth(parent, new Set(visited))
     }
     // No parent — inherit generation from spouse
     for (const spouseId of spouseMap.get(id) ?? []) {
@@ -60,13 +54,25 @@ export function buildDepthFn(): (id: number) => number {
 }
 
 export function findByGeneration(generation: number): Member[] {
-  const allMembers = db.select().from(members).all()
-  const depth = buildDepthFn()
-  return allMembers.filter(r => depth(r.id) === generation).map(toMember)
+  return db.select().from(members).where(eq(members.generation, generation)).all().map(toMember)
 }
 
 export function getGeneration(id: number): number {
-  return buildDepthFn()(id)
+  return db.select({ generation: members.generation }).from(members).where(eq(members.id, id)).get()?.generation ?? 1
+}
+
+export function computeAllGenerations(): Map<number, number> {
+  const depth = buildDepthFn()
+  return new Map(db.select({ id: members.id }).from(members).all().map(r => [r.id, depth(r.id)]))
+}
+
+export function syncGenerations(): number {
+  const depth = buildDepthFn()
+  const all = db.select().from(members).all()
+  for (const m of all) {
+    db.update(members).set({ generation: depth(m.id) }).where(eq(members.id, m.id)).run()
+  }
+  return all.length
 }
 
 export function findByCity(city: string): Member[] {

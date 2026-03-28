@@ -13,6 +13,7 @@ export const members = sqliteTable('members', {
   isAlive: integer('is_alive'),
   isRoot: integer('is_root').default(0),
   seniority: integer('seniority'),
+  generation: integer('generation'),
   instagram: text('instagram'),
   birthday: text('birthday'),
   photoPath: text('photo_path'),

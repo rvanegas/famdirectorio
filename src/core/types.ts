@@ -12,6 +12,7 @@ export interface Member {
   isAlive: boolean
   isRoot: boolean
   seniority: number | null
+  generation: number | null
   instagram: string | null
   birthday: string | null
   photoPath: string | null

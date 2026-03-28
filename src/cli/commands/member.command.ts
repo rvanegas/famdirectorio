@@ -15,7 +15,7 @@ export function registerMemberCommand(program: Command): void {
     .description('List members')
     .option('-g, --generation <n>', 'Filter by generation (derived from relationships)')
     .option('-c, --city <name>', 'Filter by city (partial match)')
-    .option('-f, --fields <fields>', 'Extra fields to display (comma-separated: email,phone,instagram,occupation,seniority,attended2023,notes)')
+    .option('-f, --fields <fields>', 'Extra fields to display (comma-separated: generation,email,phone,instagram,occupation,seniority,attended2023,notes)')
     .action((opts) => {
       let result
       if (opts.generation) {
@@ -79,7 +79,7 @@ export function registerMemberCommand(program: Command): void {
     .description('Add a new member (interactive)')
     .action(async () => {
       const data = await promptMember()
-      const member = membersRepo.create({ ...data, photoPath: null })
+      const member = membersRepo.create({ ...data, photoPath: null, generation: null })
       console.log(chalk.green(`Created member ID ${member.id}: ${member.firstName} ${member.lastName ?? ''}`))
     })
 

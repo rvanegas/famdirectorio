@@ -98,6 +98,7 @@ export function registerRelationshipCommand(program: Command): void {
       const rel = relsRepo.create(fromNum, toNum, relType)
       console.log(chalk.green(`Created relationship ID ${rel.id}: ${fromId} → ${type} → ${toId}`))
       syncNuclearFamilyAfterRelationship(fromNum, toNum, relType)
+      membersRepo.syncGenerations()
     })
 
   relCmd
@@ -126,5 +127,6 @@ export function registerRelationshipCommand(program: Command): void {
         relsRepo.remove(rel.id)
       }
       console.log(chalk.green(`Deleted ${found.length} relationship(s) between ${memberAId} and ${memberBId}`))
+      membersRepo.syncGenerations()
     })
 }

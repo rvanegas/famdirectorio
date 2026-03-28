@@ -2,9 +2,10 @@ import chalk from 'chalk'
 import type { Member } from '../../core/types'
 import type { NuclearFamilyRow } from '../../core/nuclearFamilies.repository'
 
-type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes'
+type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes' | 'generation'
 
 const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; value: (m: Member) => string }> = {
+  generation:   { label: 'Gen',          width:  5, value: m => m.generation !== null ? String(m.generation) : '-' },
   city:         { label: 'City',         width: 16, value: m => m.city ?? '-' },
   alive:        { label: 'Alive',        width:  6, value: m => m.isAlive ? 'Y' : 'N' },
   email:        { label: 'Email',        width: 28, value: m => m.email ?? '-' },

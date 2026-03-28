@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { confirm } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
+import * as membersRepo from '../../core/members.repository'
 
 type FamilyKey = string  // "p1:p2" where p2 may be "null"
 
@@ -48,6 +49,31 @@ function storedFamilies(): Map<FamilyKey, number> {
 
 export function registerFamilyCommand(program: Command): void {
   const famCmd = program.command('family').description('Nuclear family management')
+
+  famCmd
+    .command('sync')
+    .description('Sync nuclear_families table and generation values from relationships')
+    .action(async () => {
+      // Sync nuclear families
+      const expected = derivedFamilies()
+      const stored = storedFamilies()
+      const missing = [...expected].filter(k => !stored.has(k))
+      if (missing.length > 0) {
+        for (const k of missing) {
+          const [p1str, p2str] = k.split(':')
+          const p1 = parseInt(p1str, 10)
+          const p2 = p2str === 'null' ? null : parseInt(p2str, 10)
+          sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
+        }
+        console.log(chalk.green(`Created ${missing.length} missing nuclear famil${missing.length === 1 ? 'y' : 'ies'}`))
+      } else {
+        console.log(chalk.green('✓ nuclear_families already in sync'))
+      }
+
+      // Sync generations
+      const count = membersRepo.syncGenerations()
+      console.log(chalk.green(`✓ Synced generation for ${count} members`))
+    })
 
   famCmd
     .command('verify')
@@ -130,6 +156,23 @@ export function registerFamilyCommand(program: Command): void {
             .map(f => `${f}=${m[f]}`)
             .join('  ')
           console.log(`  ID ${m.id}  ${name}  — ${fields}`)
+        }
+      }
+
+      // --- Generation consistency check ---
+      const computed = membersRepo.computeAllGenerations()
+      const storedGens = sqlite
+        .prepare(`SELECT id, first_name, last_name, generation FROM members ORDER BY id`)
+        .all() as { id: number; first_name: string; last_name: string | null; generation: number | null }[]
+      const genMismatches = storedGens.filter(m => m.generation !== (computed.get(m.id) ?? null))
+      if (genMismatches.length === 0) {
+        console.log(chalk.green(`✓ generations stored and consistent (${storedGens.length} members)`))
+      } else {
+        ok = false
+        console.log(chalk.red(`✗ ${genMismatches.length} member(s) with missing or stale generation:`))
+        for (const m of genMismatches) {
+          const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
+          console.log(`  ID ${m.id}  ${name}  stored=${m.generation ?? 'null'}  computed=${computed.get(m.id)}`)
         }
       }
 

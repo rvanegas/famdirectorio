@@ -1,7 +1,7 @@
 import { input, confirm, select } from '@inquirer/prompts'
 import type { Member } from '../../core/types'
 
-type MemberInput = Omit<Member, 'id' | 'photoPath'>
+type MemberInput = Omit<Member, 'id' | 'photoPath' | 'generation'>
 
 // Allows typing ASCII escape sequences for Spanish diacritics:
 //   a' → á  e' → é  i' → í  o' → ó  u' → ú  n~ → ñ  u" → ü  (uppercase too)

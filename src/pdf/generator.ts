@@ -65,17 +65,6 @@ function isGen2(id: number, parentMap: Map<number, number>, rootSet: Set<number>
   return parentId !== undefined && rootSet.has(parentId)
 }
 
-function depthFromRoot(id: number, parentMap: Map<number, number>, rootSet: Set<number>): number {
-  if (rootSet.has(id)) return 1
-  let depth = 1
-  let current: number | undefined = id
-  while ((current = parentMap.get(current)) !== undefined) {
-    depth++
-    if (rootSet.has(current)) break
-  }
-  return depth
-}
-
 function resolveGen2Ancestor(
   memberId: number,
   parentMap: Map<number, number>,
@@ -281,11 +270,10 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       familiesBySection.get(key)!.push(family)
     }
 
-    // Sort families: primary by generation (depth, spouse-aware), secondary by seniority
-    const getDepth = membersRepo.buildDepthFn()
+    // Sort families: primary by generation (stored, spouse-aware), secondary by seniority
     const familySortKey = (f: NuclearFamily) => {
       const head = f.heads[0]
-      const depth = getDepth(head.id)
+      const depth = head.generation ?? 1
       const seniority = head.seniority ?? Infinity
       return [depth, seniority, head.id] as [number, number, number]
     }
