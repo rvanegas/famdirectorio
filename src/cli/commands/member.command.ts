@@ -4,6 +4,7 @@ import { confirm } from '@inquirer/prompts'
 import * as membersRepo from '../../core/members.repository'
 import * as relRepo from '../../core/relationships.repository'
 import * as nucFamRepo from '../../core/nuclearFamilies.repository'
+import * as mediaRepo from '../../core/media.repository'
 import { membersTable, memberDetail, memberShow } from '../utils/table'
 import { promptMember } from '../utils/prompts'
 
@@ -64,13 +65,22 @@ export function registerMemberCommand(program: Command): void {
         if (b.seniority === null) return -1
         return a.seniority - b.seniority
       }
+      const ownFamilies = nucFamRepo.findByParent(member.id)
+      const originFamilies = nucFamRepo.findByParents(parentIds)
+      const allFamilyIds = [...new Set([...ownFamilies, ...originFamilies].map(f => f.id))]
+      const familyMedia = allFamilyIds
+        .map(fid => ({ familyId: fid, assets: mediaRepo.findByFamily(fid) }))
+        .filter(x => x.assets.length > 0)
       console.log(memberShow(member, {
         generation,
         parents: lookup(parentIds),
         spouses: lookup(spouseIds),
         children: lookup(childIds).sort(bySeniority),
         siblings: lookup(siblingIds).sort(bySeniority),
-        nuclearFamilies: nucFamRepo.findByParent(member.id),
+        nuclearFamilies: ownFamilies,
+        familyOfOrigin: originFamilies,
+        media: mediaRepo.findByMember(member.id),
+        familyMedia,
       }))
     })
 

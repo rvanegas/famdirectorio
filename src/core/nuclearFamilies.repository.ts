@@ -17,3 +17,18 @@ export function findByParent(memberId: number): NuclearFamilyRow[] {
     or(eq(nuclearFamilies.parent1Id, memberId), eq(nuclearFamilies.parent2Id, memberId))
   ).all()
 }
+
+export function findByParents(parentIds: number[]): NuclearFamilyRow[] {
+  if (parentIds.length === 0) return []
+  const seen = new Set<number>()
+  const result: NuclearFamilyRow[] = []
+  for (const pid of parentIds) {
+    for (const f of findByParent(pid)) {
+      if (!seen.has(f.id)) {
+        seen.add(f.id)
+        result.push(f)
+      }
+    }
+  }
+  return result
+}

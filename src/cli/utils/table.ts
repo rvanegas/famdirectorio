@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import type { Member } from '../../core/types'
+import type { Member, MediaAsset } from '../../core/types'
 import type { NuclearFamilyRow } from '../../core/nuclearFamilies.repository'
 
 type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes' | 'generation'
@@ -65,6 +65,9 @@ export interface MemberShowRelations {
   children: Member[]
   siblings: Member[]
   nuclearFamilies: NuclearFamilyRow[]
+  familyOfOrigin: NuclearFamilyRow[]
+  media: MediaAsset[]
+  familyMedia: { familyId: number; assets: MediaAsset[] }[]
 }
 
 export function memberShow(m: Member, rel: MemberShowRelations): string {
@@ -79,6 +82,35 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
       const order = x.seniority !== null ? chalk.dim(` #${x.seniority}`) : ''
       return `${memberName(x)} (${x.id})${order}`
     }).join('\n               ')
+
+  const allMembers = [...rel.parents, ...rel.spouses, ...rel.children, ...rel.siblings]
+  const memberLookup = (id: number) => allMembers.find(x => x.id === id)
+
+  const nucFamStr = (f: NuclearFamilyRow, selfId: number, coParents: Member[]) => {
+    const otherId = f.parent1Id === selfId ? f.parent2Id : f.parent1Id
+    const otherStr = otherId != null
+      ? (() => { const o = coParents.find(s => s.id === otherId); return o ? `w/ ${memberName(o)} (${otherId})` : `w/ #${otherId}` })()
+      : ''
+    return `#${f.id}${otherStr ? ` ${otherStr}` : ''}`
+  }
+
+  const originFamStr = (f: NuclearFamilyRow) => {
+    const p1 = memberLookup(f.parent1Id)
+    const p2 = f.parent2Id != null ? memberLookup(f.parent2Id) : null
+    const p1Str = p1 ? `${memberName(p1)} (${f.parent1Id})` : `#${f.parent1Id}`
+    const p2Str = f.parent2Id != null ? (p2 ? `${memberName(p2)} (${f.parent2Id})` : `#${f.parent2Id}`) : null
+    return `#${f.id} — ${p1Str}${p2Str ? ` & ${p2Str}` : ''}`
+  }
+
+  const mediaStr = (assets: MediaAsset[]) => {
+    if (assets.length === 0) return '-'
+    return assets.map(a => {
+      const primary = a.isPrimary ? chalk.green(' [primary]') : ''
+      const caption = a.caption ? chalk.dim(` "${a.caption}"`) : ''
+      const type = a.mediaType ?? 'photo'
+      return `#${a.id} ${type}${primary} ${a.filePath}${caption}`
+    }).join('\n               ')
+  }
 
   const lines = [
     chalk.bold(`${memberName(m)}  ${chalk.dim(`#${m.id}`)}`),
@@ -97,17 +129,19 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     '',
     fmt('Parents:', nameList(rel.parents)),
     fmt('Spouse:', nameList(rel.spouses)),
+    ...(rel.familyOfOrigin.length > 0 ? [
+      fmt('Origin Family:', rel.familyOfOrigin.map(originFamStr).join('\n               ')),
+    ] : []),
     ...(rel.nuclearFamilies.length > 0 ? [
-      fmt('Nucl. Family:', rel.nuclearFamilies.map(f => {
-        const otherId = f.parent1Id === m.id ? f.parent2Id : f.parent1Id
-        const otherStr = otherId != null
-          ? (() => { const o = rel.spouses.find(s => s.id === otherId); return o ? `w/ ${memberName(o)} (${otherId})` : `w/ #${otherId}` })()
-          : ''
-        return `#${f.id}${otherStr ? ` ${otherStr}` : ''}`
-      }).join('\n               ')),
+      fmt('Own Family:', rel.nuclearFamilies.map(f => nucFamStr(f, m.id, rel.spouses)).join('\n               ')),
     ] : []),
     fmt('Children:', nameListOrdered(rel.children)),
     fmt('Siblings:', nameListOrdered(rel.siblings)),
+    '',
+    fmt('Media:', mediaStr(rel.media)),
+    ...rel.familyMedia.map(({ familyId, assets }) =>
+      fmt(`Family #${familyId}:`, mediaStr(assets))
+    ),
   ]
   return lines.join('\n')
 }
