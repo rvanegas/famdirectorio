@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
+import { PDFDocument as LibPDFDocument, PDFName } from 'pdf-lib'
 import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
@@ -317,6 +318,13 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
     stream.on('finish', resolve)
     stream.on('error', reject)
   })
+
+  // Remove empty AcroForm entry that PDFKit adds by default, which causes
+  // macOS Preview to show an unwanted "AutoFill" banner.
+  const pdfBytes = fs.readFileSync(outputPath)
+  const pdfDoc = await LibPDFDocument.load(pdfBytes)
+  pdfDoc.catalog.delete(PDFName.of('AcroForm'))
+  fs.writeFileSync(outputPath, await pdfDoc.save())
 
   return outputPath
 }

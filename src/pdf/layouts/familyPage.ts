@@ -39,7 +39,7 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       .font('Helvetica')
       .fontSize(9)
       .fillColor(accent)
-      .text(`RAMA ${(family.branch.firstName + ' ' + family.branch.lastName).trim().toUpperCase()}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
+      .text(`RAMA ${family.branch.firstName.toUpperCase()}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
   }
 
   // --- Parents section ---
@@ -148,6 +148,13 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
     const MEDIA_COLS = 4
     const MEDIA_GAP = 10
     const mediaColW = (width - MARGIN * 2 - MEDIA_GAP * (MEDIA_COLS - 1)) / MEDIA_COLS
+
+    // Only draw separator + label if at least one image fits on the page
+    if (mediaStartY + 30 + PHOTO_SIZE <= height - 50) {
+      doc.moveTo(MARGIN, mediaStartY).lineTo(width - MARGIN, mediaStartY).strokeColor('#dddddd').lineWidth(0.5).stroke()
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#888888').text('Álbum', MARGIN, mediaStartY + 12)
+      mediaStartY += 30
+    }
 
     for (let i = 0; i < photoMedia.length; i++) {
       const asset = photoMedia[i]
