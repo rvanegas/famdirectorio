@@ -125,13 +125,15 @@ export async function sendEmail(
   to: string,
   subject: string,
   body: string,
-  attachmentPath: string
+  attachmentPath: string,
+  cc?: string[]
 ): Promise<void> {
   const transport = createTransport()
 
   await transport.sendMail({
     from: process.env.FAM_SMTP_USER,
     to,
+    ...(cc && cc.length > 0 ? { cc } : {}),
     subject,
     text: body,
     attachments: [

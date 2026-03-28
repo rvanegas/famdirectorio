@@ -14,7 +14,16 @@ import {
 
 type Member = NonNullable<ReturnType<typeof membersRepo.findById>>
 
-function resolveRecipients(opts: { template: string; generation?: number }): Member[] | null {
+function resolveRecipients(opts: { template: string; member?: number; generation?: number }): Member[] | null {
+  if (opts.member != null) {
+    const member = membersRepo.findById(opts.member)
+    if (!member) {
+      console.error(chalk.red(`Member with ID ${opts.member} not found.`))
+      process.exit(1)
+    }
+    return [member]
+  }
+
   if (opts.generation != null) {
     const members = membersRepo.findAll().filter((m) => membersRepo.getGeneration(m.id) <= opts.generation!)
     if (members.length === 0) {
@@ -54,6 +63,7 @@ export function registerEmailCommand(program: Command): void {
     .command('list')
     .description('List members who would receive the email')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
+    .option('-m, --member <id>', 'Single member by ID', parseInt)
     .option('-g, --generation <n>', 'Members up to and including generation N', parseInt)
     .action((opts) => {
       const members = resolveRecipients(opts)
@@ -80,8 +90,10 @@ export function registerEmailCommand(program: Command): void {
     .command('send')
     .description('Send an email with the directory attached; reads <template>.ids.txt for recipients')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
+    .option('-m, --member <id>', 'Send to a single member by ID', parseInt)
     .option('-g, --generation <n>', 'Send to all members up to and including generation N', parseInt)
-    .option('--dry-run', 'Print emails to stdout without sending')
+    .option('-c, --cc-senders', 'CC all senders on every email')
+    .option('-d, --dry-run', 'Print emails to stdout without sending')
     .action(async (opts) => {
       const members = resolveRecipients(opts)
       if (!members) return
@@ -118,15 +130,20 @@ export function registerEmailCommand(program: Command): void {
 
         const rendered = renderEmail(template, member, senders)
 
+        const ccAddresses = opts.ccSenders
+          ? senders.map((s) => s.email).filter((e): e is string => !!e)
+          : []
+
         if (opts.dryRun) {
           console.log(chalk.bold(`--- To: ${member.firstName} ${member.lastName ?? ''} <${member.email}> ---`))
+          if (ccAddresses.length > 0) console.log(chalk.dim(`CC: ${ccAddresses.join(', ')}`))
           console.log(chalk.dim(`Subject: ${rendered.subject}`))
           console.log(rendered.body)
           console.log()
         } else {
           process.stdout.write(`  Sending to ${member.firstName} ${member.lastName ?? ''} <${member.email}>... `)
           try {
-            await sendEmail(member.email, rendered.subject, rendered.body, pdfPath)
+            await sendEmail(member.email, rendered.subject, rendered.body, pdfPath, ccAddresses)
             console.log(chalk.green('Sent.'))
             emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
           } catch (err: unknown) {
