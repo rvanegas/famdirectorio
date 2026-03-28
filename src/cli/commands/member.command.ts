@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { confirm } from '@inquirer/prompts'
 import * as membersRepo from '../../core/members.repository'
 import * as relRepo from '../../core/relationships.repository'
+import * as nucFamRepo from '../../core/nuclearFamilies.repository'
 import { membersTable, memberDetail, memberShow } from '../utils/table'
 import { promptMember } from '../utils/prompts'
 
@@ -69,6 +70,7 @@ export function registerMemberCommand(program: Command): void {
         spouses: lookup(spouseIds),
         children: lookup(childIds).sort(bySeniority),
         siblings: lookup(siblingIds).sort(bySeniority),
+        nuclearFamilies: nucFamRepo.findByParent(member.id),
       }))
     })
 

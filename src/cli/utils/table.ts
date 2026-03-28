@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import type { Member } from '../../core/types'
+import type { NuclearFamilyRow } from '../../core/nuclearFamilies.repository'
 
 type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes'
 
@@ -62,6 +63,7 @@ export interface MemberShowRelations {
   spouses: Member[]
   children: Member[]
   siblings: Member[]
+  nuclearFamilies: NuclearFamilyRow[]
 }
 
 export function memberShow(m: Member, rel: MemberShowRelations): string {
@@ -93,7 +95,16 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     fmt('Notes:', m.notes ?? '-'),
     '',
     fmt('Parents:', nameList(rel.parents)),
-    fmt('Spouse(s):', nameList(rel.spouses)),
+    fmt('Spouse:', nameList(rel.spouses)),
+    ...(rel.nuclearFamilies.length > 0 ? [
+      fmt('Nucl. Family:', rel.nuclearFamilies.map(f => {
+        const otherId = f.parent1Id === m.id ? f.parent2Id : f.parent1Id
+        const otherStr = otherId != null
+          ? (() => { const o = rel.spouses.find(s => s.id === otherId); return o ? `w/ ${memberName(o)} (${otherId})` : `w/ #${otherId}` })()
+          : ''
+        return `#${f.id}${otherStr ? ` ${otherStr}` : ''}`
+      }).join('\n               ')),
+    ] : []),
     fmt('Children:', nameListOrdered(rel.children)),
     fmt('Siblings:', nameListOrdered(rel.siblings)),
   ]
