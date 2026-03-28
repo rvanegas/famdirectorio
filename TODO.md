@@ -5,26 +5,27 @@ Future feature ideas for famdirectorio.
 ## PDF / Yearbook
 
 - ~~Indices for email and phone~~ (done: contact index page added)
-- Clean up formatting
-- graphic design
+- ~~Clean up formatting~~
+- ~~graphic design~~
 - ~~language español~~
 - ~~ciudad / occupación de hijos~~
 - ~~three across layout~~
 - ~~name should not overwrite~~
-- front matter
+- ~~front matter~~
 
 ## CLI
 
-- Generate emails requesting information to fill out lacuna.
+- ~~Generate emails requesting information to fill out lacuna.~~
 
 ## Data & Schema
 
-- Fields for anecdotes, events, and other trivia, yearbook-style
+- Fields for anecdotes, events, and other trivia
 - ~~email and phone should have verification date~~
 - phone should always have intl format
 - ~~nuclear family data should have verification date~~ (done: `nuclear_families.verified_at` added)
 - most helpful collaborators indicated
 - ~~Represent majority~~
+- nuclear family photos
 
 ## Media
 
@@ -33,9 +34,10 @@ Future feature ideas for famdirectorio.
 
 ## Other
 
-- logic for in-laws needs to be thought through.
+- ~~logic for in-laws needs to be thought through~~
 - ~~preamble explaining function and vision for directory~~
 - ~~normalize accents~~
 - ~~artista~~
 - ~~move db out to enable repo clone~~
-- apodos, bdays
+- ~~bdays~~
+- template for bday
