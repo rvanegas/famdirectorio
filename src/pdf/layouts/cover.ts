@@ -152,7 +152,7 @@ export function renderFamilyCover(
       doc
         .font('Helvetica-Bold')
         .fontSize(nameFontSize)
-        .fillColor('#ffffff')
+        .fillColor('#ffffff', 1)
         .text(line.text, 72, y, { align: 'center', width: width - 144 })
       y += nameLineHeight
     }
