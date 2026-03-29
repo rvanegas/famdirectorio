@@ -35,11 +35,13 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
 
   // Branch label (top right)
   if (family.branch) {
+    const gen = family.heads[0]?.generation
+    const genSuffix = gen != null ? `, GENERACIÓN ${gen}` : ''
     doc
       .font('Helvetica')
       .fontSize(9)
       .fillColor(accent)
-      .text(`RAMA ${family.branch.firstName.toUpperCase()}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
+      .text(`RAMA ${family.branch.firstName.toUpperCase()}${genSuffix}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
   }
 
   // --- Parents section ---
