@@ -107,14 +107,14 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       // First name — bold, prominent
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#1a1a2e')
         .text(child.firstName, textX, cy, { width: textW })
-      // Last name — lighter weight, off-black, second row
+      // Last name — lighter weight, off-black, starts wherever first name ended
       if (child.lastName) {
         doc.font('Helvetica').fontSize(8).fillColor('#4a4a4a')
-          .text(child.lastName, textX, cy + 14, { width: textW })
+          .text(child.lastName, textX, doc.y, { width: textW })
       }
 
-      // Details pinned below name rows, explicit Y to prevent overwrite
-      let textY = cy + 30
+      // Details start wherever the name block ended
+      let textY = doc.y + 2
       const childDetails: [string, string | null | undefined][] = [
         ['Ciudad', child.city],
         ['Ocupación', child.occupation],
@@ -222,14 +222,14 @@ function renderParentBlock(
   // First name — bold, large
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#1a1a2e')
     .text(member.firstName, textX, y, { width: textW })
-  // Last name — regular weight, off-black, second row
+  // Last name — regular weight, off-black, starts wherever first name ended
   if (member.lastName) {
     doc.font('Helvetica').fontSize(13).fillColor('#4a4a4a')
-      .text(member.lastName, textX, y + 20, { width: textW })
+      .text(member.lastName, textX, doc.y, { width: textW })
   }
 
-  // Details pinned below name rows, explicit Y to prevent overwrite
-  let textY = y + 42
+  // Details start wherever the name block ended
+  let textY = doc.y + 4
 
   const details: [string, string | null | undefined][] = [
     ['Ciudad', member.city],
