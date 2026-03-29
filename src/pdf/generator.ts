@@ -61,24 +61,28 @@ export interface GenerateOptions {
   outputPath?: string
 }
 
-// A member is Gen-2 if their parent is a root member.
-function isGen2(id: number, parentMap: Map<number, number>, rootSet: Set<number>): boolean {
-  const parentId = parentMap.get(id)
-  return parentId !== undefined && rootSet.has(parentId)
+// A member is Gen-2 if any of their parents is a root member.
+function isGen2(id: number, parentMap: Map<number, number[]>, rootSet: Set<number>): boolean {
+  return (parentMap.get(id) ?? []).some(parentId => rootSet.has(parentId))
 }
 
 function resolveGen2Ancestor(
   memberId: number,
-  parentMap: Map<number, number>,
+  parentMap: Map<number, number[]>,
   rootSet: Set<number>,
 ): number | null {
-  let id: number | undefined = memberId
-  for (let i = 0; i < 10; i++) {
-    if (id === undefined) return null
+  const visited = new Set<number>()
+  function dfs(id: number): number | null {
+    if (visited.has(id)) return null
+    visited.add(id)
     if (isGen2(id, parentMap, rootSet)) return id
-    id = parentMap.get(id)
+    for (const parentId of parentMap.get(id) ?? []) {
+      const result = dfs(parentId)
+      if (result !== null) return result
+    }
+    return null
   }
-  return null
+  return dfs(memberId)
 }
 
 function buildNuclearFamilies(
@@ -86,7 +90,7 @@ function buildNuclearFamilies(
   allRels: Relationship[],
   memberMap: Map<number, Member>,
   gen2Map: Map<number, BranchSection>,
-  parentMap: Map<number, number>,
+  parentMap: Map<number, number[]>,
   rootSet: Set<number>,
   dbFamilies: nucFamRepo.NuclearFamilyRow[],
   familyMediaMap: Map<number, MediaAsset[]>,
@@ -175,7 +179,8 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   fs.mkdirSync(outputDir, { recursive: true })
 
   const dateStr = new Date().toISOString().slice(0, 10)
-  const outputPath = options.outputPath ?? path.join(outputDir, `Directorio Durán Mazuera ${dateStr}.pdf`)
+  const version = getNextVersion()
+  const outputPath = options.outputPath ?? path.join(outputDir, `Directorio Durán Mazuera v${version} ${dateStr}.pdf`)
 
   const doc = new PDFDocument({
     size: 'LETTER',
@@ -200,9 +205,13 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   const memberMap = new Map(allMembers.map(m => [m.id, m]))
   const allRels = relRepo.findAll()
 
-  const parentMap = new Map<number, number>()
+  const parentMap = new Map<number, number[]>()
   for (const rel of allRels) {
-    if (rel.type === 'child') parentMap.set(rel.toMemberId, rel.fromMemberId)
+    if (rel.type === 'child') {
+      const parents = parentMap.get(rel.toMemberId) ?? []
+      parents.push(rel.fromMemberId)
+      parentMap.set(rel.toMemberId, parents)
+    }
   }
 
   const rootSet = new Set(allMembers.filter(m => m.isRoot).map(m => m.id))
@@ -228,7 +237,6 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   }
 
   // --- Cover (global) ---
-  const version = getNextVersion()
   doc.addPage()
   renderCover(doc, allMembers.length, version)
 
