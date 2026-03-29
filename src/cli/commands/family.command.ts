@@ -128,6 +128,15 @@ export function registerFamilyCommand(program: Command): void {
             const [p1, p2] = k.split(':')
             console.log(`  id=${id} parent1=${p1} parent2=${p2}`)
           }
+          const del = await confirm({ message: `Delete ${extra.length} extra nuclear famil${extra.length === 1 ? 'y' : 'ies'}?`, default: true })
+          if (del) {
+            for (const k of extra) {
+              const id = stored.get(k)!
+              sqlite.prepare(`DELETE FROM nuclear_families WHERE id=?`).run(id)
+            }
+            console.log(chalk.green(`Deleted ${extra.length} extra nuclear famil${extra.length === 1 ? 'y' : 'ies'}`))
+            if (missing.length === 0) ok = true
+          }
         }
       }
 

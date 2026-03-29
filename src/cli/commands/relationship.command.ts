@@ -9,26 +9,32 @@ import { sqlite } from '../../db/client'
 
 function syncNuclearFamilyAfterRelationship(fromId: number, toId: number, type: Relationship['type']): void {
   if (type === 'spouse') {
-    // If one member already has a single-parent nuclear family, update it to a couple
-    const existing = sqlite
+    const p1 = Math.min(fromId, toId)
+    const p2 = Math.max(fromId, toId)
+
+    // Skip if the two-parent family already exists
+    const alreadyExists = sqlite
+      .prepare(`SELECT id FROM nuclear_families WHERE parent1_id=? AND parent2_id=?`)
+      .get(p1, p2)
+    if (alreadyExists) return
+
+    // Collect all single-parent families for either member
+    const singles = sqlite
       .prepare(`SELECT id, parent1_id FROM nuclear_families WHERE parent2_id IS NULL AND parent1_id IN (?, ?)`)
-      .get(fromId, toId) as { id: number; parent1_id: number } | undefined
-    if (existing) {
-      const spouseId = existing.parent1_id === fromId ? toId : fromId
-      const p1 = Math.min(existing.parent1_id, spouseId)
-      const p2 = Math.max(existing.parent1_id, spouseId)
-      sqlite.prepare(`UPDATE nuclear_families SET parent1_id=?, parent2_id=? WHERE id=?`).run(p1, p2, existing.id)
-      console.log(chalk.green(`Updated nuclear family ${existing.id}: parents ${p1} & ${p2}`))
-    } else {
-      const p1 = Math.min(fromId, toId)
-      const p2 = Math.max(fromId, toId)
-      const alreadyExists = sqlite
-        .prepare(`SELECT id FROM nuclear_families WHERE parent1_id=? AND parent2_id=?`)
-        .get(p1, p2)
-      if (!alreadyExists) {
-        sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
-        console.log(chalk.green(`Created nuclear family: parents ${p1} & ${p2}`))
+      .all(fromId, toId) as { id: number; parent1_id: number }[]
+
+    if (singles.length > 0) {
+      // Upgrade the first one, delete any extras
+      const [keep, ...extras] = singles
+      sqlite.prepare(`UPDATE nuclear_families SET parent1_id=?, parent2_id=? WHERE id=?`).run(p1, p2, keep.id)
+      console.log(chalk.green(`Updated nuclear family ${keep.id}: parents ${p1} & ${p2}`))
+      for (const extra of extras) {
+        sqlite.prepare(`DELETE FROM nuclear_families WHERE id=?`).run(extra.id)
+        console.log(chalk.green(`Removed duplicate single-parent nuclear family ${extra.id}`))
       }
+    } else {
+      sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
+      console.log(chalk.green(`Created nuclear family: parents ${p1} & ${p2}`))
     }
   } else if (type === 'child') {
     const parentId = fromId
@@ -38,6 +44,39 @@ function syncNuclearFamilyAfterRelationship(fromId: number, toId: number, type: 
     if (!exists) {
       sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, NULL)`).run(parentId)
       console.log(chalk.green(`Created nuclear family: single parent ${parentId}`))
+    }
+  }
+}
+
+async function crossLinkChildren(aId: number, bId: number): Promise<void> {
+  const aName = (() => { const m = membersRepo.findById(aId); return m ? `${m.firstName} ${m.lastName ?? ''}`.trim() : `ID ${aId}` })()
+  const bName = (() => { const m = membersRepo.findById(bId); return m ? `${m.firstName} ${m.lastName ?? ''}`.trim() : `ID ${bId}` })()
+
+  for (const childRel of relsRepo.findChildren(aId)) {
+    const childId = childRel.toMemberId
+    if (relsRepo.findByPair(bId, childId, 'child').length === 0) {
+      const child = membersRepo.findById(childId)
+      const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
+      const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${bName}?`, default: true })
+      if (alsoAdd) {
+        const r = relsRepo.create(bId, childId, 'child')
+        console.log(chalk.green(`Created relationship ID ${r.id}: ${bId} → child → ${childId}`))
+        syncNuclearFamilyAfterRelationship(bId, childId, 'child')
+      }
+    }
+  }
+
+  for (const childRel of relsRepo.findChildren(bId)) {
+    const childId = childRel.toMemberId
+    if (relsRepo.findByPair(aId, childId, 'child').length === 0) {
+      const child = membersRepo.findById(childId)
+      const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
+      const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${aName}?`, default: true })
+      if (alsoAdd) {
+        const r = relsRepo.create(aId, childId, 'child')
+        console.log(chalk.green(`Created relationship ID ${r.id}: ${aId} → child → ${childId}`))
+        syncNuclearFamilyAfterRelationship(aId, childId, 'child')
+      }
     }
   }
 }
@@ -101,6 +140,7 @@ export function registerRelationshipCommand(program: Command): void {
       syncNuclearFamilyAfterRelationship(fromNum, toNum, relType)
 
       if (relType === 'child') {
+        // If new parent already has a spouse, offer to also link the child to that spouse
         const parentRels = relsRepo.findByMember(fromNum)
         const spouseRel = parentRels.find((r) => r.type === 'spouse')
         if (spouseRel) {
@@ -114,43 +154,30 @@ export function registerRelationshipCommand(program: Command): void {
             syncNuclearFamilyAfterRelationship(spouseId, toNum, 'child')
           }
         }
+
+        // If the child already has other parents, offer to mark them as spouses of the new parent
+        const existingParentRels = relsRepo.findByMember(toNum).filter(
+          (r) => r.type === 'child' && r.toMemberId === toNum && r.fromMemberId !== fromNum,
+        )
+        for (const existingParentRel of existingParentRels) {
+          const otherParentId = existingParentRel.fromMemberId
+          if (relsRepo.findByPair(fromNum, otherParentId, 'spouse').length > 0) continue
+          const otherParent = membersRepo.findById(otherParentId)
+          const otherParentName = otherParent ? `${otherParent.firstName} ${otherParent.lastName ?? ''}`.trim() : `ID ${otherParentId}`
+          const newParent = membersRepo.findById(fromNum)
+          const newParentName = newParent ? `${newParent.firstName} ${newParent.lastName ?? ''}`.trim() : `ID ${fromNum}`
+          const areSpouses = await confirm({ message: `${newParentName} (ID ${fromNum}) and ${otherParentName} (ID ${otherParentId}) are both parents of this child — are they spouses?`, default: true })
+          if (areSpouses) {
+            const sr = relsRepo.create(fromNum, otherParentId, 'spouse')
+            console.log(chalk.green(`Created relationship ID ${sr.id}: ${fromNum} ↔ spouse ↔ ${otherParentId}`))
+            syncNuclearFamilyAfterRelationship(fromNum, otherParentId, 'spouse')
+            await crossLinkChildren(fromNum, otherParentId)
+          }
+        }
       }
 
       if (relType === 'spouse') {
-        const fromMember = membersRepo.findById(fromNum)
-        const toMember = membersRepo.findById(toNum)
-        const fromName = fromMember ? `${fromMember.firstName} ${fromMember.lastName ?? ''}`.trim() : `ID ${fromNum}`
-        const toName = toMember ? `${toMember.firstName} ${toMember.lastName ?? ''}`.trim() : `ID ${toNum}`
-
-        // Children of fromNum not yet linked to toNum
-        for (const childRel of relsRepo.findChildren(fromNum)) {
-          const childId = childRel.toMemberId
-          if (relsRepo.findByPair(toNum, childId, 'child').length === 0) {
-            const child = membersRepo.findById(childId)
-            const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
-            const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${toName}?`, default: true })
-            if (alsoAdd) {
-              const r = relsRepo.create(toNum, childId, 'child')
-              console.log(chalk.green(`Created relationship ID ${r.id}: ${toNum} → child → ${childId}`))
-              syncNuclearFamilyAfterRelationship(toNum, childId, 'child')
-            }
-          }
-        }
-
-        // Children of toNum not yet linked to fromNum
-        for (const childRel of relsRepo.findChildren(toNum)) {
-          const childId = childRel.toMemberId
-          if (relsRepo.findByPair(fromNum, childId, 'child').length === 0) {
-            const child = membersRepo.findById(childId)
-            const childName = child ? `${child.firstName} ${child.lastName ?? ''}`.trim() : `ID ${childId}`
-            const alsoAdd = await confirm({ message: `Is ${childName} (ID ${childId}) also a child of ${fromName}?`, default: true })
-            if (alsoAdd) {
-              const r = relsRepo.create(fromNum, childId, 'child')
-              console.log(chalk.green(`Created relationship ID ${r.id}: ${fromNum} → child → ${childId}`))
-              syncNuclearFamilyAfterRelationship(fromNum, childId, 'child')
-            }
-          }
-        }
+        await crossLinkChildren(fromNum, toNum)
       }
 
       membersRepo.syncGenerations()

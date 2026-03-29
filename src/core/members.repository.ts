@@ -1,4 +1,4 @@
-import { db } from '../db/client'
+import { db, sqlite } from '../db/client'
 import { members } from '../db/schema'
 import { eq, like } from 'drizzle-orm'
 import { relationships } from '../db/schema'
@@ -116,6 +116,14 @@ export function update(id: number, data: Partial<Omit<Member, 'id'>>): Member | 
 }
 
 export function remove(id: number): boolean {
+  sqlite.prepare(`DELETE FROM email_logs WHERE member_id = ?`).run(id)
+  sqlite.prepare(`DELETE FROM media WHERE member_id = ?`).run(id)
+  sqlite.prepare(`DELETE FROM relationships WHERE from_member_id = ? OR to_member_id = ?`).run(id, id)
+  // Two-parent families: demote to single-parent (keep the surviving parent)
+  sqlite.prepare(`UPDATE nuclear_families SET parent1_id = parent2_id, parent2_id = NULL WHERE parent1_id = ? AND parent2_id IS NOT NULL`).run(id)
+  sqlite.prepare(`UPDATE nuclear_families SET parent2_id = NULL WHERE parent2_id = ?`).run(id)
+  // Single-parent families where the sole parent is being deleted: remove entirely
+  sqlite.prepare(`DELETE FROM nuclear_families WHERE parent1_id = ? AND parent2_id IS NULL`).run(id)
   const result = db.delete(members).where(eq(members.id, id)).run()
   return result.changes > 0
 }
