@@ -3,7 +3,11 @@ import { ROOT_COVER_COLOR } from '../generator'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
-export function renderCover(doc: PDFDoc, memberCount: number): void {
+function formatDateEs(date: Date): string {
+  return date.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+export function renderCover(doc: PDFDoc, memberCount: number, version: number): void {
   const { width, height } = doc.page
 
   // Background
@@ -47,12 +51,12 @@ export function renderCover(doc: PDFDoc, memberCount: number): void {
     .fillColor('#aaaacc')
     .text(`${memberCount} miembros`, 0, height * 0.61, { align: 'center', width })
 
-  // Year
+  // Date + version
   doc
     .font('Helvetica')
     .fontSize(13)
     .fillColor('#aaaacc')
-    .text(String(new Date().getFullYear()), 0, height * 0.87, { align: 'center', width })
+    .text(`${formatDateEs(new Date())} · v${version}`, 0, height * 0.87, { align: 'center', width })
 
   // Bottom bar
   doc.rect(0, height - 8, width, 8).fill('#e8d5b7')
@@ -125,7 +129,7 @@ export function renderFamilyCover(
 
   const nameFontSize = 40
   const nameLineHeight = nameFontSize * 1.35
-  const bulletHeight = 36
+  const bulletHeight = 72
   const totalNameHeight = lines.reduce((h, l) => h + (l.bullet ? bulletHeight : nameLineHeight), 0)
   const blockStart = (height - totalNameHeight) / 2 - 10
 
@@ -140,9 +144,9 @@ export function renderFamilyCover(
     if (line.bullet) {
       doc
         .font('Helvetica')
-        .fontSize(20)
+        .fontSize(72)
         .fillColor('#ffffff', 0.5)
-        .text(line.text, 72, y + 8, { align: 'center', width: width - 144 })
+        .text(line.text, 72, y + (bulletHeight - 72) / 2, { align: 'center', width: width - 144 })
       y += bulletHeight
     } else {
       doc

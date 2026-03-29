@@ -74,5 +74,10 @@ export type Media = typeof media.$inferSelect
 export type NewMedia = typeof media.$inferInsert
 export type NuclearFamily = typeof nuclearFamilies.$inferSelect
 export type NewNuclearFamily = typeof nuclearFamilies.$inferInsert
+export const pdfSettings = sqliteTable('pdf_settings', {
+  id: integer('id').primaryKey(),
+  version: integer('version').notNull(),
+})
+
 export type EmailLog = typeof emailLogs.$inferSelect
 export type NewEmailLog = typeof emailLogs.$inferInsert

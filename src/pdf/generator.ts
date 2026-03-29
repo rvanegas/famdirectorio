@@ -6,6 +6,7 @@ import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
 import * as nucFamRepo from '../core/nuclearFamilies.repository'
+import { getNextVersion } from '../core/pdfSettings.repository'
 import type { Member, Relationship, MediaAsset } from '../core/types'
 import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
@@ -227,8 +228,9 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   }
 
   // --- Cover (global) ---
+  const version = getNextVersion()
   doc.addPage()
-  renderCover(doc, allMembers.length)
+  renderCover(doc, allMembers.length, version)
 
   // --- Foreword ---
   const forewordPath = path.resolve(process.cwd(), 'data/foreword.md')
