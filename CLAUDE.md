@@ -80,7 +80,7 @@ src/
 **Data files**:
 - `$FAM_DIR/db/family.db` — SQLite database (outside repo; auto-created on first run)
 - `$FAM_DIR/media/{memberId}/` — local photo storage (outside repo; parallel to db)
-- `FAM_DIR` env var is required; the CLI exits with an error if it is not set (`FAM_DIR=/Users/rodvandur/src/fam/data` on this machine)
+- `FAM_DIR` env var is required; the CLI exits with an error if it is not set (`FAM_DIR=/Users/rodvandur/.local/share/famdirectorio` on this machine)
 - `FAM_SMTP_USER` and `FAM_SMTP_PASS` are required for `fam email` commands
 - `FAM_SMTP_HOST` (default: `smtp.gmail.com`) and `FAM_SMTP_PORT` (default: `587`) are optional overrides
 - `FAM_SENDERS` — comma-separated member IDs (e.g. `10,26,52`); resolved to `{{sender1}}`, `{{sender2}}`, ... mustache vars in templates, rendered as `Name (email)`
