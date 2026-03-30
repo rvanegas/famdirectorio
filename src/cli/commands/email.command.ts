@@ -167,11 +167,40 @@ export function registerEmailCommand(program: Command): void {
         console.log(chalk.dim('No emails logged yet.'))
         return
       }
+      const pdfLabel = (name: string | null) =>
+        name?.match(/v\d+\s+\d{4}-\d{2}-\d{2}|\d{4}-\d{2}-\d{2}/)?.[0] ?? name ?? '-'
+
+      const colW = {
+        id:       Math.max(2, ...entries.map(e => String(e.id).length)),
+        memberId: Math.max(8, ...entries.map(e => String(e.memberId).length)),
+        date:     Math.max(4, ...entries.map(e => (e.sentAt ?? '').length)),
+        to:       Math.max(2, ...entries.map(e => e.toEmail.length)),
+        template: Math.max(8, ...entries.map(e => e.template.length)),
+        status:   Math.max(6, ...entries.map(e => e.status.length)),
+      }
+
+      const pad = (s: string, w: number) => s.padEnd(w + 2)
+
       const header = chalk.cyan(
-        `${'ID'.padEnd(6)}${'MemberID'.padEnd(10)}${'Date'.padEnd(20)}${'To'.padEnd(30)}${'Template'.padEnd(16)}${'Status'.padEnd(10)}PDF`
+        pad('ID', colW.id) +
+        pad('MemberID', colW.memberId) +
+        pad('Date', colW.date) +
+        pad('To', colW.to) +
+        pad('Template', colW.template) +
+        pad('Status', colW.status) +
+        'PDF'
       )
       const rows = entries.map(e =>
-        `${String(e.id).padEnd(6)}${String(e.memberId).padEnd(10)}${(e.sentAt ?? '').padEnd(20)}${e.toEmail.padEnd(30)}${e.template.padEnd(16)}${e.status === 'sent' ? chalk.green('sent'.padEnd(10)) : chalk.red('error'.padEnd(10))}${(e.pdfName?.match(/v\d+\s+\d{4}-\d{2}-\d{2}|\d{4}-\d{2}-\d{2}/)?.[0] ?? e.pdfName ?? '-')}${e.error ? chalk.dim(` — ${e.error}`) : ''}`
+        pad(String(e.id), colW.id) +
+        pad(String(e.memberId), colW.memberId) +
+        pad(e.sentAt ?? '', colW.date) +
+        pad(e.toEmail, colW.to) +
+        pad(e.template, colW.template) +
+        (e.status === 'sent'
+          ? chalk.green(pad('sent', colW.status))
+          : chalk.red(pad('error', colW.status))) +
+        pdfLabel(e.pdfName ?? null) +
+        (e.error ? chalk.dim(` — ${e.error}`) : '')
       )
       console.log([header, ...rows].join('\n'))
       console.log(chalk.dim(`${entries.length} entries`))

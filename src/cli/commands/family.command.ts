@@ -7,16 +7,23 @@ import * as membersRepo from '../../core/members.repository'
 
 type FamilyKey = string  // "p1:p2" where p2 may be "null"
 
+function spouseParentOrder(aId: number, bId: number): [number, number] {
+  const aHasParent = sqlite.prepare(`SELECT id FROM relationships WHERE type='child' AND to_member_id=?`).get(aId) != null
+  const bHasParent = sqlite.prepare(`SELECT id FROM relationships WHERE type='child' AND to_member_id=?`).get(bId) != null
+  if (aHasParent && !bHasParent) return [aId, bId]
+  if (bHasParent && !aHasParent) return [bId, aId]
+  return [Math.min(aId, bId), Math.max(aId, bId)]
+}
+
 function derivedFamilies(): Set<FamilyKey> {
   const expected = new Set<FamilyKey>()
 
   const spouseRows = sqlite
-    .prepare(`SELECT MIN(from_member_id, to_member_id) AS p1, MAX(from_member_id, to_member_id) AS p2
-              FROM relationships WHERE type='spouse'
-              GROUP BY p1, p2`)
-    .all() as { p1: number; p2: number }[]
+    .prepare(`SELECT from_member_id AS a, to_member_id AS b FROM relationships WHERE type='spouse'`)
+    .all() as { a: number; b: number }[]
 
-  for (const { p1, p2 } of spouseRows) {
+  for (const { a, b } of spouseRows) {
+    const [p1, p2] = spouseParentOrder(a, b)
     expected.add(`${p1}:${p2}`)
   }
 
@@ -57,7 +64,25 @@ export function registerFamilyCommand(program: Command): void {
       // Sync nuclear families
       const expected = derivedFamilies()
       const stored = storedFamilies()
-      const missing = [...expected].filter(k => !stored.has(k))
+      let missing = [...expected].filter(k => !stored.has(k))
+      const extra = [...stored.keys()].filter(k => !expected.has(k))
+
+      // Fix swapped parent order (descendant should be parent1)
+      const swapped = extra.filter(k => {
+        const [p1, p2] = k.split(':')
+        return p2 !== 'null' && missing.includes(`${p2}:${p1}`)
+      })
+      if (swapped.length > 0) {
+        for (const k of swapped) {
+          const id = stored.get(k)!
+          const [p1str, p2str] = k.split(':')
+          sqlite.prepare(`UPDATE nuclear_families SET parent1_id=?, parent2_id=? WHERE id=?`).run(parseInt(p2str, 10), parseInt(p1str, 10), id)
+        }
+        console.log(chalk.green(`Fixed parent order for ${swapped.length} nuclear famil${swapped.length === 1 ? 'y' : 'ies'}`))
+        const swappedMissing = swapped.map(k => { const [p1, p2] = k.split(':'); return `${p2}:${p1}` })
+        missing = missing.filter(k => !swappedMissing.includes(k))
+      }
+
       if (missing.length > 0) {
         for (const k of missing) {
           const [p1str, p2str] = k.split(':')
@@ -66,7 +91,7 @@ export function registerFamilyCommand(program: Command): void {
           sqlite.prepare(`INSERT INTO nuclear_families (parent1_id, parent2_id) VALUES (?, ?)`).run(p1, p2)
         }
         console.log(chalk.green(`Created ${missing.length} missing nuclear famil${missing.length === 1 ? 'y' : 'ies'}`))
-      } else {
+      } else if (swapped.length === 0) {
         console.log(chalk.green('✓ nuclear_families already in sync'))
       }
 
@@ -96,12 +121,40 @@ export function registerFamilyCommand(program: Command): void {
       // --- Nuclear families consistency check ---
       const expected = derivedFamilies()
       const stored = storedFamilies()
-      const missing = [...expected].filter(k => !stored.has(k))
-      const extra = [...stored.keys()].filter(k => !expected.has(k))
+      let missing = [...expected].filter(k => !stored.has(k))
+      let extra = [...stored.keys()].filter(k => !expected.has(k))
 
-      if (missing.length === 0 && extra.length === 0) {
+      // Detect swapped parent order (descendant should be parent1, in-law parent2)
+      const swapped = extra.filter(k => {
+        const [p1, p2] = k.split(':')
+        return p2 !== 'null' && missing.includes(`${p2}:${p1}`)
+      })
+      if (swapped.length > 0) {
+        ok = false
+        console.log(chalk.red(`✗ ${swapped.length} nuclear famil${swapped.length === 1 ? 'y has' : 'ies have'} parents in wrong order (descendant should be parent1):`))
+        for (const k of swapped) {
+          const id = stored.get(k)
+          const [p1, p2] = k.split(':')
+          console.log(`  id=${id}  stored: parent1=${p1} parent2=${p2}  →  correct: parent1=${p2} parent2=${p1}`)
+        }
+        const fix = await confirm({ message: `Swap parent order for ${swapped.length} famil${swapped.length === 1 ? 'y' : 'ies'}?`, default: true })
+        if (fix) {
+          for (const k of swapped) {
+            const id = stored.get(k)!
+            const [p1str, p2str] = k.split(':')
+            sqlite.prepare(`UPDATE nuclear_families SET parent1_id=?, parent2_id=? WHERE id=?`).run(parseInt(p2str, 10), parseInt(p1str, 10), id)
+          }
+          console.log(chalk.green(`Fixed parent order for ${swapped.length} famil${swapped.length === 1 ? 'y' : 'ies'}`))
+          const swappedMissing = swapped.map(k => { const [p1, p2] = k.split(':'); return `${p2}:${p1}` })
+          missing = missing.filter(k => !swappedMissing.includes(k))
+          extra = extra.filter(k => !swapped.includes(k))
+          if (missing.length === 0 && extra.length === 0) ok = true
+        }
+      }
+
+      if (missing.length === 0 && extra.length === 0 && swapped.length === 0) {
         console.log(chalk.green(`✓ nuclear_families consistent (${stored.size} families)`))
-      } else {
+      } else if (missing.length > 0 || extra.length > 0) {
         ok = false
         if (missing.length > 0) {
           console.log(chalk.red(`✗ Missing from nuclear_families (${missing.length}):`))

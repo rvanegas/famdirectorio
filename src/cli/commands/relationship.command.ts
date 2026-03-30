@@ -7,10 +7,17 @@ import type { Relationship } from '../../core/types'
 import { relationships as relationshipsSchema } from '../../db/schema'
 import { sqlite } from '../../db/client'
 
+function spouseParentOrder(aId: number, bId: number): [number, number] {
+  const aHasParent = sqlite.prepare(`SELECT id FROM relationships WHERE type='child' AND to_member_id=?`).get(aId) != null
+  const bHasParent = sqlite.prepare(`SELECT id FROM relationships WHERE type='child' AND to_member_id=?`).get(bId) != null
+  if (aHasParent && !bHasParent) return [aId, bId]
+  if (bHasParent && !aHasParent) return [bId, aId]
+  return [Math.min(aId, bId), Math.max(aId, bId)]
+}
+
 function syncNuclearFamilyAfterRelationship(fromId: number, toId: number, type: Relationship['type']): void {
   if (type === 'spouse') {
-    const p1 = Math.min(fromId, toId)
-    const p2 = Math.max(fromId, toId)
+    const [p1, p2] = spouseParentOrder(fromId, toId)
 
     // Skip if the two-parent family already exists
     const alreadyExists = sqlite
