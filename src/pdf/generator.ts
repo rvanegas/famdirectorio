@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
-import { PDFDocument as LibPDFDocument, PDFName } from 'pdf-lib'
+import { PDFDocument as LibPDFDocument, PDFName, PDFArray, PDFDict } from 'pdf-lib'
 import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
@@ -337,11 +337,26 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
     stream.on('error', reject)
   })
 
-  // Remove empty AcroForm entry that PDFKit adds by default, which causes
-  // macOS Preview to show an unwanted "AutoFill" banner.
+  // Remove AcroForm and widget annotations that PDFKit adds by default,
+  // which causes macOS Preview to show an unwanted "AutoFill" banner.
   const pdfBytes = fs.readFileSync(outputPath)
   const pdfDoc = await LibPDFDocument.load(pdfBytes)
   pdfDoc.catalog.delete(PDFName.of('AcroForm'))
+  for (const page of pdfDoc.getPages()) {
+    const annots = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray)
+    if (!annots) continue
+    const nonWidgets = annots.asArray().filter((ref) => {
+      const annot = pdfDoc.context.lookupMaybe(ref, PDFDict)
+      if (!annot) return true
+      const subtype = annot.lookupMaybe(PDFName.of('Subtype'), PDFName)
+      return subtype?.asString() !== 'Widget'
+    })
+    if (nonWidgets.length === 0) {
+      page.node.delete(PDFName.of('Annots'))
+    } else {
+      page.node.set(PDFName.of('Annots'), pdfDoc.context.obj(nonWidgets))
+    }
+  }
   fs.writeFileSync(outputPath, await pdfDoc.save())
 
   return outputPath
