@@ -11,22 +11,6 @@ function emailTemplatesDir(): string {
   return path.join(famDir, 'email-templates')
 }
 
-export function resolveRecipientIds(name: string): number[] {
-  const idsPath = path.join(emailTemplatesDir(), `${name}.ids.txt`)
-  if (!fs.existsSync(idsPath)) {
-    throw new Error(`Recipients file not found: ${idsPath}`)
-  }
-  return fs
-    .readFileSync(idsPath, 'utf-8')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => {
-      const n = parseInt(l, 10)
-      if (isNaN(n)) throw new Error(`Invalid ID in recipients file: "${l}"`)
-      return n
-    })
-}
 
 export function resolveTemplate(name: string): { subject: string; body: string } {
   const templatePath = path.join(emailTemplatesDir(), `${name}.txt`)

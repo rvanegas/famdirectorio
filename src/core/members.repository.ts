@@ -3,6 +3,15 @@ import { members } from '../db/schema'
 import { eq, like } from 'drizzle-orm'
 import { relationships } from '../db/schema'
 import type { Member } from './types'
+import path from 'path'
+
+function normalizePhotoPath(p: string | null | undefined): string | null | undefined {
+  if (!p) return p
+  if (!path.isAbsolute(p)) return p
+  const famDir = process.env.FAM_DIR
+  if (!famDir) return p
+  return path.relative(famDir, p)
+}
 
 function toMember(row: typeof members.$inferSelect): Member {
   return {
@@ -89,6 +98,7 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
     .insert(members)
     .values({
       ...data,
+      photoPath: normalizePhotoPath(data.photoPath),
       attended2023: data.attended2023 ? 1 : 0,
       isAlive: data.isAlive ? 1 : 0,
       isRoot: data.isRoot ? 1 : 0,
@@ -99,11 +109,12 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
 }
 
 export function update(id: number, data: Partial<Omit<Member, 'id'>>): Member | null {
-  const { attended2023, isAlive, isRoot, ...rest } = data
+  const { attended2023, isAlive, isRoot, photoPath, ...rest } = data
   const row = db
     .update(members)
     .set({
       ...rest,
+      ...(photoPath !== undefined ? { photoPath: normalizePhotoPath(photoPath) } : {}),
       ...(attended2023 !== undefined ? { attended2023: attended2023 ? 1 : 0 } : {}),
       ...(isAlive !== undefined ? { isAlive: isAlive ? 1 : 0 } : {}),
       ...(isRoot !== undefined ? { isRoot: isRoot ? 1 : 0 } : {}),

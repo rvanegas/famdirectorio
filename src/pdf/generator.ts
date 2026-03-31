@@ -130,6 +130,14 @@ function buildNuclearFamilies(
       }
     }
 
+    // Blood member (has parents in the tree) goes first; in-law goes second
+    if (heads.length === 2) {
+      const hasParents = (m: Member) => (parentMap.get(m.id) ?? []).length > 0
+      if (!hasParents(heads[0]) && hasParents(heads[1])) {
+        heads.reverse()
+      }
+    }
+
     const childIds = new Set<number>()
     for (const head of heads) {
       for (const cid of childrenMap.get(head.id) ?? []) {

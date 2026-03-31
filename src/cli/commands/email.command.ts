@@ -5,7 +5,6 @@ import * as membersRepo from '../../core/members.repository'
 import * as emailLogRepo from '../../core/emailLog.repository'
 import {
   resolveTemplate,
-  resolveRecipientIds,
   renderEmail,
   resolveSenders,
   findLatestPdf,
@@ -14,14 +13,24 @@ import {
 
 type Member = NonNullable<ReturnType<typeof membersRepo.findById>>
 
-function resolveRecipients(opts: { template: string; member?: number; generation?: number }): Member[] | null {
-  if (opts.member != null) {
-    const member = membersRepo.findById(opts.member)
-    if (!member) {
-      console.error(chalk.red(`Member with ID ${opts.member} not found.`))
-      process.exit(1)
-    }
-    return [member]
+function resolveRecipients(opts: { members?: string; generation?: number }): Member[] | null {
+  if (opts.members != null) {
+    const ids = opts.members.split(',').map((s) => {
+      const n = parseInt(s.trim(), 10)
+      if (isNaN(n)) {
+        console.error(chalk.red(`Invalid member ID: "${s.trim()}"`))
+        process.exit(1)
+      }
+      return n
+    })
+    return ids.map((id) => {
+      const member = membersRepo.findById(id)
+      if (!member) {
+        console.error(chalk.red(`Member with ID ${id} not found.`))
+        process.exit(1)
+      }
+      return member!
+    })
   }
 
   if (opts.generation != null) {
@@ -33,27 +42,8 @@ function resolveRecipients(opts: { template: string; member?: number; generation
     return members
   }
 
-  let ids: number[]
-  try {
-    ids = resolveRecipientIds(opts.template)
-  } catch (err: unknown) {
-    console.error(chalk.red((err as Error).message))
-    process.exit(1)
-  }
-
-  if (ids.length === 0) {
-    console.log(chalk.yellow('Recipients file is empty.'))
-    return null
-  }
-
-  return ids.map((id) => {
-    const member = membersRepo.findById(id)
-    if (!member) {
-      console.error(chalk.red(`Member with ID ${id} not found.`))
-      process.exit(1)
-    }
-    return member
-  })
+  console.error(chalk.red('Specify recipients with -m <ids> or -g <generation>.'))
+  process.exit(1)
 }
 
 export function registerEmailCommand(program: Command): void {
@@ -63,7 +53,7 @@ export function registerEmailCommand(program: Command): void {
     .command('list')
     .description('List members who would receive the email')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
-    .option('-m, --member <id>', 'Single member by ID', parseInt)
+    .option('-m, --members <ids>', 'Comma-separated member IDs')
     .option('-g, --generation <n>', 'Members up to and including generation N', parseInt)
     .action((opts) => {
       const members = resolveRecipients(opts)
@@ -88,9 +78,9 @@ export function registerEmailCommand(program: Command): void {
 
   emailCmd
     .command('send')
-    .description('Send an email with the directory attached; reads <template>.ids.txt for recipients')
+    .description('Send an email with the directory attached')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
-    .option('-m, --member <id>', 'Send to a single member by ID', parseInt)
+    .option('-m, --members <ids>', 'Comma-separated member IDs')
     .option('-g, --generation <n>', 'Send to all members up to and including generation N', parseInt)
     .option('-c, --cc-senders', 'CC all senders on every email')
     .option('-d, --dry-run', 'Print emails to stdout without sending')
