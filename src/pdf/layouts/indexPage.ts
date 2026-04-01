@@ -29,7 +29,7 @@ function buildIndex(members: Member[], key: (m: Member) => string | null): Index
     .map(([group, ms]) => ({
       group,
       members: ms.slice().sort((a, b) =>
-        `${a.firstName} ${a.lastName ?? ''}`.localeCompare(`${b.firstName} ${b.lastName ?? ''}`, 'es')
+        `${a.lastName ?? ''} ${a.firstName}`.localeCompare(`${b.lastName ?? ''} ${b.firstName}`, 'es')
       ),
     }))
 }
@@ -132,10 +132,10 @@ function renderIndexSection(
         .font('Helvetica')
         .fontSize(9)
         .fillColor(NAME_COLOR)
-        .text(fullName(m), colX() + 8, y, { width: colW - 8 })
+        .text(lastFirst(m), colX() + 8, y, { width: colW - 8 })
       if (m.city && title.includes('Ocupación')) {
         // show city as subtext inline
-        const nameW = doc.widthOfString(fullName(m))
+        const nameW = doc.widthOfString(lastFirst(m))
         const subX = colX() + 8 + nameW + 4
         if (subX + 20 < colX() + colW) {
           doc
@@ -145,7 +145,7 @@ function renderIndexSection(
             .text(`— ${m.city}`, subX, y + 0.5, { width: colX() + colW - subX })
         }
       } else if (m.occupation && title.includes('Ciudad')) {
-        const nameW = doc.widthOfString(fullName(m))
+        const nameW = doc.widthOfString(lastFirst(m))
         const subX = colX() + 8 + nameW + 4
         if (subX + 20 < colX() + colW) {
           doc
@@ -231,7 +231,7 @@ function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
         .font('Helvetica')
         .fontSize(9)
         .fillColor(NAME_COLOR)
-        .text(fullName(m), colX() + 28, y, { width: colW - 28 })
+        .text(lastFirst(m), colX() + 28, y, { width: colW - 28 })
       y += 13
     }
 
