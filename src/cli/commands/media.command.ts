@@ -6,6 +6,14 @@ import * as mediaRepo from '../../core/media.repository'
 import * as membersRepo from '../../core/members.repository'
 import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
 
+export function mediaFileName(firstName: string, lastName: string | null, ext: string, isFamily: boolean, id: number): string {
+  const name = `${firstName}${lastName ? ' ' + lastName : ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  return `${isFamily ? 'family of ' : ''}${name} - ${id}${ext}`
+}
+
 export function registerMediaCommand(program: Command): void {
   const mediaCmd = program.command('media').description('Manage media (photos, etc.)')
 
@@ -67,18 +75,25 @@ export function registerMediaCommand(program: Command): void {
 
       const id = parseInt(ownerId, 10)
 
+      const famDir = process.env.FAM_DIR!
+      const ext = path.extname(filePath)
+
       if (opts.family) {
         const family = nuclearFamiliesRepo.findById(id)
         if (!family) {
           console.error(chalk.red(`Nuclear family ${ownerId} not found`))
           process.exit(1)
         }
-        const mediaDir = path.join(process.env.FAM_DIR!, 'media', `family-${ownerId}`)
+        const parent1 = membersRepo.findById(family.parent1Id)!
+        const mediaDir = path.join(famDir, 'media', `family-${ownerId}`)
         fs.mkdirSync(mediaDir, { recursive: true })
-        const dest = path.join(mediaDir, path.basename(filePath))
-        fs.copyFileSync(filePath, dest)
-        const relPath = path.relative(process.env.FAM_DIR!, dest)
-        const asset = mediaRepo.create(relPath, { familyId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        const tmpDest = path.join(mediaDir, `_tmp_${Date.now()}${ext}`)
+        fs.copyFileSync(filePath, tmpDest)
+        const asset = mediaRepo.create(path.relative(famDir, tmpDest), { familyId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        const finalDest = path.join(mediaDir, mediaFileName(parent1.firstName, parent1.lastName, ext, true, asset.id))
+        fs.renameSync(tmpDest, finalDest)
+        const relPath = path.relative(famDir, finalDest)
+        mediaRepo.updatePath(asset.id, relPath)
         console.log(chalk.green(`Attached media ID ${asset.id} to family ${ownerId}`))
       } else {
         const member = membersRepo.findById(id)
@@ -86,12 +101,15 @@ export function registerMediaCommand(program: Command): void {
           console.error(chalk.red(`Member ${ownerId} not found`))
           process.exit(1)
         }
-        const mediaDir = path.join(process.env.FAM_DIR!, 'media', ownerId)
+        const mediaDir = path.join(famDir, 'media', ownerId)
         fs.mkdirSync(mediaDir, { recursive: true })
-        const dest = path.join(mediaDir, path.basename(filePath))
-        fs.copyFileSync(filePath, dest)
-        const relPath = path.relative(process.env.FAM_DIR!, dest)
-        const asset = mediaRepo.create(relPath, { memberId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        const tmpDest = path.join(mediaDir, `_tmp_${Date.now()}${ext}`)
+        fs.copyFileSync(filePath, tmpDest)
+        const asset = mediaRepo.create(path.relative(famDir, tmpDest), { memberId: id, caption: opts.caption, isPrimary: true, mediaType: 'photo' })
+        const finalDest = path.join(mediaDir, mediaFileName(member.firstName, member.lastName, ext, false, asset.id))
+        fs.renameSync(tmpDest, finalDest)
+        const relPath = path.relative(famDir, finalDest)
+        mediaRepo.updatePath(asset.id, relPath)
         membersRepo.update(id, { photoPath: relPath })
         console.log(chalk.green(`Attached media ID ${asset.id} to member ${ownerId}`))
       }

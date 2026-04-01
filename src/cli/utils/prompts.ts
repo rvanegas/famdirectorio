@@ -26,7 +26,14 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   const city = await spanishInput('City:', defaults.city ?? '')
   const phone = await input({ message: 'Phone:', default: defaults.phone ?? '' })
   const email = await input({ message: 'Email:', default: defaults.email ?? '' })
-  const instagram = await input({ message: 'Instagram:', default: defaults.instagram ?? '' })
+  const instagram = await input({
+    message: 'Instagram:',
+    default: defaults.instagram ?? '',
+    validate: (v) => {
+      if (!v) return true
+      return v.startsWith('@') || 'Must start with @'
+    },
+  })
   const birthday = await input({
     message: 'Birthday (MM-DD, leave blank for none):',
     default: defaults.birthday ?? '',

@@ -9,6 +9,22 @@ export function registerPdfCommand(program: Command): void {
   const pdfCmd = program.command('pdf').description('Generate PDF family directory')
 
   pdfCmd
+    .command('open')
+    .description('Open the generated PDF in data/output')
+    .action(() => {
+      const outputDir = path.resolve(process.cwd(), 'data/output')
+      const pdfs = fs.existsSync(outputDir)
+        ? fs.readdirSync(outputDir).filter(f => f.endsWith('.pdf'))
+        : []
+      if (pdfs.length === 0) {
+        console.error(chalk.red('No PDF found in data/output'))
+        process.exit(1)
+      }
+      const pdfPath = path.join(outputDir, pdfs[0])
+      execSync(`open "${pdfPath}"`)
+    })
+
+  pdfCmd
     .command('generate')
     .description('Generate the family yearbook PDF')
     .option('-o, --output <path>', 'Output file path')

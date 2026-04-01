@@ -1,9 +1,14 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { confirm } from '@inquirer/prompts'
+import path from 'path'
+import fs from 'fs'
+import { confirm, input } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
 import * as membersRepo from '../../core/members.repository'
+import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
+import * as mediaRepo from '../../core/media.repository'
+import { mediaFileName } from './media.command'
 
 type FamilyKey = string  // "p1:p2" where p2 may be "null"
 
@@ -235,6 +240,103 @@ export function registerFamilyCommand(program: Command): void {
         for (const m of genMismatches) {
           const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
           console.log(`  ID ${m.id}  ${name}  stored=${m.generation ?? 'null'}  computed=${computed.get(m.id)}`)
+        }
+      }
+
+      // --- Media filename convention check ---
+      {
+        const famDir = process.env.FAM_DIR!
+        const allMedia = mediaRepo.findAll()
+        const badMedia: { asset: typeof allMedia[0]; expectedBase: string; expectedFile: string }[] = []
+
+        for (const asset of allMedia) {
+          let firstName: string
+          let lastName: string | null
+          let isFamily: boolean
+
+          if (asset.memberId != null) {
+            const member = membersRepo.findById(asset.memberId)
+            if (!member) continue
+            firstName = member.firstName
+            lastName = member.lastName
+            isFamily = false
+          } else if (asset.familyId != null) {
+            const family = nuclearFamiliesRepo.findById(asset.familyId)
+            if (!family) continue
+            const parent1 = membersRepo.findById(family.parent1Id)
+            if (!parent1) continue
+            firstName = parent1.firstName
+            lastName = parent1.lastName
+            isFamily = true
+          } else {
+            continue
+          }
+
+          const ext = path.extname(asset.filePath)
+          const expectedFile = mediaFileName(firstName, lastName, ext, isFamily, asset.id)
+          const actualBase = path.basename(asset.filePath)
+          if (actualBase !== expectedFile) {
+            badMedia.push({ asset, expectedBase: expectedFile, expectedFile })
+          }
+        }
+
+        if (badMedia.length === 0) {
+          console.log(chalk.green('✓ All media files follow naming convention'))
+        } else {
+          ok = false
+          console.log(chalk.red(`✗ ${badMedia.length} media file(s) with incorrect filename:`))
+          for (const { asset, expectedFile } of badMedia) {
+            const actual = path.basename(asset.filePath)
+            console.log(`  ID ${asset.id}  "${actual}"  →  "${expectedFile}"`)
+            const fix = await confirm({ message: `  Rename to "${expectedFile}"?`, default: true })
+            if (fix) {
+              const oldFull = path.join(famDir, asset.filePath)
+              const newFull = path.join(path.dirname(oldFull), expectedFile)
+              const newRel = path.relative(famDir, newFull)
+              if (!fs.existsSync(oldFull)) {
+                console.log(chalk.yellow(`  File not found on disk, updating DB path only`))
+              } else {
+                fs.renameSync(oldFull, newFull)
+              }
+              sqlite.prepare(`UPDATE media SET file_path=? WHERE id=?`).run(newRel, asset.id)
+              if (asset.memberId != null) {
+                const primary = sqlite.prepare(`SELECT is_primary FROM media WHERE id=?`).get(asset.id) as { is_primary: number } | undefined
+                if (primary?.is_primary) {
+                  sqlite.prepare(`UPDATE members SET photo_path=? WHERE id=?`).run(newRel, asset.memberId)
+                }
+              }
+              console.log(chalk.green(`  Renamed media ID ${asset.id}`))
+            }
+          }
+        }
+      }
+
+      // --- Instagram @ prefix check ---
+      const badInstagram = sqlite
+        .prepare(`SELECT id, first_name, last_name, instagram FROM members
+                  WHERE instagram IS NOT NULL AND instagram != '' AND instagram NOT LIKE '@%'
+                  ORDER BY id`)
+        .all() as { id: number; first_name: string; last_name: string | null; instagram: string }[]
+
+      if (badInstagram.length === 0) {
+        console.log(chalk.green('✓ All instagram handles start with @'))
+      } else {
+        ok = false
+        console.log(chalk.red(`✗ ${badInstagram.length} member(s) with instagram not starting with @:`))
+        for (const m of badInstagram) {
+          const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
+          const fixed = `@${m.instagram}`
+          console.log(`  ID ${m.id}  ${name}  — "${m.instagram}"  (should be "${fixed}")`)
+          const fix = await confirm({ message: `  Fix to "${fixed}"?`, default: true })
+          if (fix) {
+            const corrected = await input({
+              message: '  Instagram handle:',
+              default: fixed,
+              validate: (v) => (!v || v.startsWith('@')) || 'Must start with @',
+            })
+            sqlite.prepare(`UPDATE members SET instagram=? WHERE id=?`).run(corrected || null, m.id)
+            console.log(chalk.green(`  Updated ID ${m.id} instagram to "${corrected || 'null'}"` ))
+          }
         }
       }
 

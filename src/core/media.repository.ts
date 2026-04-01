@@ -92,6 +92,10 @@ export function setPrimary(mediaId: number): boolean {
   return true
 }
 
+export function updatePath(id: number, filePath: string): void {
+  db.update(media).set({ filePath }).where(eq(media.id, id)).run()
+}
+
 export function remove(id: number): boolean {
   const result = db.delete(media).where(eq(media.id, id)).run()
   return result.changes > 0
