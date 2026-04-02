@@ -124,6 +124,32 @@ export function registerFamilyCommand(program: Command): void {
         }
       }
 
+      // --- Multiple spouses check ---
+      {
+        const spouseCounts = sqlite
+          .prepare(`SELECT m.id, m.first_name, m.last_name, COUNT(*) as cnt
+                    FROM (
+                      SELECT from_member_id AS mid FROM relationships WHERE type='spouse'
+                      UNION ALL
+                      SELECT to_member_id   AS mid FROM relationships WHERE type='spouse'
+                    ) s
+                    JOIN members m ON m.id = s.mid
+                    GROUP BY s.mid
+                    HAVING cnt > 1
+                    ORDER BY m.id`)
+          .all() as { id: number; first_name: string; last_name: string | null; cnt: number }[]
+        if (spouseCounts.length === 0) {
+          console.log(chalk.green('✓ No members with multiple spouses'))
+        } else {
+          ok = false
+          console.log(chalk.red(`✗ ${spouseCounts.length} member(s) with multiple spouses:`))
+          for (const m of spouseCounts) {
+            const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
+            console.log(`  ID ${m.id}  ${name}  — ${m.cnt} spouses`)
+          }
+        }
+      }
+
       // --- Nuclear families consistency check ---
       const expected = derivedFamilies()
       const stored = storedFamilies()

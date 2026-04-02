@@ -330,7 +330,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       if (sectionFamilies.length === 0) continue
 
       doc.addPage()
-      renderBranchDivider(doc, section, sectionFamilies.reduce((n, f) => n + f.heads.length, 0))
+      renderBranchDivider(doc, section, new Set(sectionFamilies.flatMap(f => [...f.heads, ...f.children].map(m => m.id))).size)
 
       for (const family of sectionFamilies) {
         doc.addPage()
