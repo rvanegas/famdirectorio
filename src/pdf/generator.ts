@@ -6,12 +6,14 @@ import * as membersRepo from '../core/members.repository'
 import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
 import * as nucFamRepo from '../core/nuclearFamilies.repository'
+import * as familyNotesRepo from '../core/familyNotes.repository'
 import { getNextVersion } from '../core/pdfSettings.repository'
 import type { Member, Relationship, MediaAsset } from '../core/types'
 import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
 import { renderIndexes } from './layouts/indexPage'
+
 
 // Base color matches the root family cover page background
 export const ROOT_COVER_COLOR = '#2E4057'
@@ -94,6 +96,7 @@ function buildNuclearFamilies(
   rootSet: Set<number>,
   dbFamilies: nucFamRepo.NuclearFamilyRow[],
   familyMediaMap: Map<number, MediaAsset[]>,
+  notesByFamilyId: Map<number, string[]>,
 ): NuclearFamily[] {
   const spouseMap = new Map<number, number[]>()
   const childrenMap = new Map<number, number[]>()
@@ -170,12 +173,15 @@ function buildNuclearFamilies(
       return headIds.has(p1) && (p2 === null ? headIds.size === 1 : headIds.has(p2))
     })
     const familyMedia = dbFamily ? (familyMediaMap.get(dbFamily.id) ?? []) : []
+    const notes = dbFamily ? (notesByFamilyId.get(dbFamily.id) ?? []) : []
 
     families.push({
       heads,
       children,
       branch,
       familyMedia,
+      familyId: dbFamily?.id ?? null,
+      notes,
     })
   }
 
@@ -272,15 +278,21 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   )
 
   // --- Family pages ---
-  {
-    const dbFamilies = nucFamRepo.findAll()
-    const familyMediaMap = new Map<number, MediaAsset[]>()
-    for (const f of dbFamilies) {
-      const assets = mediaRepo.findByFamily(f.id)
-      if (assets.length > 0) familyMediaMap.set(f.id, assets)
-    }
-    const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet, dbFamilies, familyMediaMap)
+  const dbFamilies = nucFamRepo.findAll()
+  const familyMediaMap = new Map<number, MediaAsset[]>()
+  for (const f of dbFamilies) {
+    const assets = mediaRepo.findByFamily(f.id)
+    if (assets.length > 0) familyMediaMap.set(f.id, assets)
+  }
+  const allNotes = familyNotesRepo.findAll()
+  const notesByFamilyId = new Map<number, string[]>()
+  for (const note of allNotes) {
+    if (!notesByFamilyId.has(note.familyId)) notesByFamilyId.set(note.familyId, [])
+    notesByFamilyId.get(note.familyId)!.push(note.content)
+  }
+  const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet, dbFamilies, familyMediaMap, notesByFamilyId)
 
+  {
     // Group families by Gen-2 section (null = root)
     const familiesBySection = new Map<number | null, NuclearFamily[]>()
     for (const family of allFamilies) {

@@ -81,3 +81,13 @@ export const pdfSettings = sqliteTable('pdf_settings', {
 
 export type EmailLog = typeof emailLogs.$inferSelect
 export type NewEmailLog = typeof emailLogs.$inferInsert
+
+export const familyNotes = sqliteTable('family_notes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  familyId: integer('family_id').notNull().references(() => nuclearFamilies.id),
+  content: text('content').notNull(),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+})
+
+export type FamilyNote = typeof familyNotes.$inferSelect
+export type NewFamilyNote = typeof familyNotes.$inferInsert

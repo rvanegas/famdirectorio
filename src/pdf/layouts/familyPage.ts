@@ -24,6 +24,8 @@ export interface NuclearFamily {
   children: Member[]
   branch: BranchSection | null
   familyMedia: MediaAsset[]
+  familyId: number | null
+  notes: string[]
 }
 
 export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
@@ -179,6 +181,42 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
         })
       } else {
         doc.rect(mx, my, PHOTO_SIZE, PHOTO_SIZE).fill('#eeeeee')
+      }
+    }
+  }
+
+  // --- Notes ---
+  if (family.notes.length > 0) {
+    const CHILD_COLS = 3
+    const CHILD_PHOTO = 64
+    const CHILD_CARD_H = CHILD_PHOTO + 8
+    const childLabelY = sepY + 12
+    const childStartY = childLabelY + 18
+    const childRows = Math.ceil(family.children.length / CHILD_COLS)
+
+    let notesStartY: number
+    if (photoMedia.length > 0) {
+      const mediaStart = family.children.length > 0
+        ? childStartY + childRows * (CHILD_CARD_H + 12) + 8
+        : sepY + 12
+      const MEDIA_COLS = 4
+      const MEDIA_GAP = 10
+      const mediaRows = Math.ceil(photoMedia.length / MEDIA_COLS)
+      notesStartY = mediaStart + 30 + mediaRows * (PHOTO_SIZE + MEDIA_GAP) + 8
+    } else if (family.children.length > 0) {
+      notesStartY = childStartY + childRows * (CHILD_CARD_H + 12) + 8
+    } else {
+      notesStartY = sepY + 12
+    }
+
+    if (notesStartY + 30 < height - 50) {
+      doc.moveTo(MARGIN, notesStartY).lineTo(width - MARGIN, notesStartY).strokeColor('#dddddd').lineWidth(0.5).stroke()
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#888888').text('Notas', MARGIN, notesStartY + 12)
+      let ny = notesStartY + 30
+      for (const note of family.notes) {
+        if (ny + 12 > height - 50) break
+        doc.font('Helvetica').fontSize(9).fillColor('#333333').text(note, MARGIN, ny, { width: width - MARGIN * 2 })
+        ny += 14
       }
     }
   }

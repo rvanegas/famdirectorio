@@ -2,11 +2,12 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import path from 'path'
 import fs from 'fs'
-import { confirm, input } from '@inquirer/prompts'
+import { confirm, editor, input } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
 import * as membersRepo from '../../core/members.repository'
 import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
+import * as familyNotesRepo from '../../core/familyNotes.repository'
 import * as mediaRepo from '../../core/media.repository'
 import { mediaFileName } from './media.command'
 
@@ -341,5 +342,85 @@ export function registerFamilyCommand(program: Command): void {
       }
 
       if (!ok) process.exit(1)
+    })
+
+  // --- family note subcommands ---
+  const noteCmd = famCmd.command('note').description('Notes associated with nuclear families')
+
+  noteCmd
+    .command('list')
+    .description('List family notes')
+    .option('--family <id>', 'Filter by nuclear family ID', parseInt)
+    .action((opts: { family?: number }) => {
+      const notes = opts.family != null
+        ? familyNotesRepo.findByFamily(opts.family)
+        : familyNotesRepo.findAll()
+
+      if (notes.length === 0) {
+        console.log(chalk.gray('No notes found.'))
+        return
+      }
+
+      for (const note of notes) {
+        const family = nuclearFamiliesRepo.findById(note.familyId)
+        let familyLabel = `family #${note.familyId}`
+        if (family) {
+          const p1 = membersRepo.findById(family.parent1Id)
+          const p2 = family.parent2Id != null ? membersRepo.findById(family.parent2Id) : null
+          const names = [p1, p2].filter(Boolean).map(m => `${m!.firstName} ${m!.lastName ?? ''}`.trim())
+          familyLabel = names.join(' & ')
+        }
+        console.log(chalk.bold(`[${note.id}] ${familyLabel}`) + chalk.gray(` (${note.createdAt ?? ''})`))
+        console.log(`  ${note.content}`)
+      }
+    })
+
+  noteCmd
+    .command('add <familyId>')
+    .description('Add a note to a nuclear family')
+    .option('--text <text>', 'Note content (skips editor prompt)')
+    .action(async (familyId: string, opts: { text?: string }) => {
+      const fid = parseInt(familyId, 10)
+      const family = nuclearFamiliesRepo.findById(fid)
+      if (!family) {
+        console.error(chalk.red(`No nuclear family with ID ${fid}`))
+        process.exit(1)
+      }
+
+      let content: string
+      if (opts.text) {
+        content = opts.text.trim()
+      } else {
+        content = await editor({ message: 'Note content:' })
+        content = content.trim()
+      }
+
+      if (!content) {
+        console.error(chalk.red('Note content cannot be empty.'))
+        process.exit(1)
+      }
+
+      const note = familyNotesRepo.create(fid, content)
+      console.log(chalk.green(`Created note ID ${note.id} for family #${fid}`))
+    })
+
+  noteCmd
+    .command('delete <noteId>')
+    .description('Delete a family note')
+    .action(async (noteId: string) => {
+      const nid = parseInt(noteId, 10)
+      const notes = familyNotesRepo.findAll()
+      const note = notes.find(n => n.id === nid)
+      if (!note) {
+        console.error(chalk.red(`No note with ID ${nid}`))
+        process.exit(1)
+      }
+
+      console.log(`  ${note.content}`)
+      const ok = await confirm({ message: `Delete note #${nid}?`, default: false })
+      if (ok) {
+        familyNotesRepo.remove(nid)
+        console.log(chalk.green(`Deleted note #${nid}`))
+      }
     })
 }
