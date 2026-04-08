@@ -1,6 +1,6 @@
 import { db, sqlite } from '../db/client'
 import { members } from '../db/schema'
-import { eq, like } from 'drizzle-orm'
+import { eq, like, or, sql } from 'drizzle-orm'
 import { relationships } from '../db/schema'
 import type { Member } from './types'
 import path from 'path'
@@ -82,6 +82,21 @@ export function syncGenerations(): number {
     db.update(members).set({ generation: depth(m.id) }).where(eq(members.id, m.id)).run()
   }
   return all.length
+}
+
+export function search(text: string): Member[] {
+  const pattern = `%${text.toLowerCase()}%`
+  return db
+    .select()
+    .from(members)
+    .where(
+      or(
+        sql`lower(${members.firstName} || ' ' || coalesce(${members.lastName}, '')) like ${pattern}`,
+        sql`lower(coalesce(${members.email}, '')) like ${pattern}`,
+      ),
+    )
+    .all()
+    .map(toMember)
 }
 
 export function findByCity(city: string): Member[] {

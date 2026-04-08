@@ -32,6 +32,20 @@ export function registerMemberCommand(program: Command): void {
     })
 
   memberCmd
+    .command('find <text>')
+    .description('Search members by name or email (case-insensitive)')
+    .action((text) => {
+      const result = membersRepo.search(text)
+      const header = chalk.cyan(`${'ID'.padEnd(6)}${'Name'.padEnd(30)}  Email`)
+      const rows = result.map(m => {
+        const name = `${m.firstName} ${m.lastName ?? ''}`.trim()
+        return `${String(m.id).padEnd(6)}${name.padEnd(30)}  ${m.email ?? '-'}`
+      })
+      console.log([header, ...rows].join('\n'))
+      console.log(chalk.dim(`${result.length} members`))
+    })
+
+  memberCmd
     .command('get <id>')
     .description('Show full details for a member')
     .action((id) => {

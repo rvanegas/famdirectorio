@@ -301,20 +301,50 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       familiesBySection.get(key)!.push(family)
     }
 
-    // Sort families: primary by generation (stored, spouse-aware), secondary by seniority
-    const familySortKey = (f: NuclearFamily) => {
-      const head = f.heads[0]
-      const depth = head.generation ?? 1
-      const seniority = head.seniority ?? Infinity
-      return [depth, seniority, head.id] as [number, number, number]
+    // Sort families depth-first: follow each family's lineage before siblings
+    const sortFamiliesDepthFirst = (families: NuclearFamily[]): NuclearFamily[] => {
+      const familyByHeadId = new Map<number, NuclearFamily>()
+      for (const family of families) {
+        for (const head of family.heads) familyByHeadId.set(head.id, family)
+      }
+
+      const childFamiliesOf = new Map<NuclearFamily, NuclearFamily[]>()
+      const hasParentFamily = new Set<NuclearFamily>()
+      for (const family of families) {
+        const kids: NuclearFamily[] = []
+        for (const child of family.children) {
+          const cf = familyByHeadId.get(child.id)
+          if (cf && cf !== family) { kids.push(cf); hasParentFamily.add(cf) }
+        }
+        kids.sort((a, b) => {
+          const ah = a.heads[0], bh = b.heads[0]
+          const as_ = ah.seniority ?? Infinity, bs = bh.seniority ?? Infinity
+          return as_ !== bs ? as_ - bs : ah.id - bh.id
+        })
+        childFamiliesOf.set(family, kids)
+      }
+
+      const roots = families
+        .filter(f => !hasParentFamily.has(f))
+        .sort((a, b) => {
+          const ah = a.heads[0], bh = b.heads[0]
+          const as_ = ah.seniority ?? Infinity, bs = bh.seniority ?? Infinity
+          return as_ !== bs ? as_ - bs : ah.id - bh.id
+        })
+
+      const result: NuclearFamily[] = []
+      const visited = new Set<NuclearFamily>()
+      const dfs = (f: NuclearFamily) => {
+        if (visited.has(f)) return
+        visited.add(f); result.push(f)
+        for (const cf of childFamiliesOf.get(f) ?? []) dfs(cf)
+      }
+      for (const root of roots) dfs(root)
+      for (const f of families) { if (!visited.has(f)) result.push(f) }
+      return result
     }
-    const cmpFamilies = (a: NuclearFamily, b: NuclearFamily) => {
-      const [ad, as_, ai] = familySortKey(a)
-      const [bd, bs, bi] = familySortKey(b)
-      return ad !== bd ? ad - bd : as_ !== bs ? as_ - bs : ai - bi
-    }
-    for (const [, families] of familiesBySection) {
-      families.sort(cmpFamilies)
+    for (const [key, families] of familiesBySection) {
+      familiesBySection.set(key, sortFamiliesDepthFirst(families))
     }
 
     // First: root families (no section), sorted by generation
