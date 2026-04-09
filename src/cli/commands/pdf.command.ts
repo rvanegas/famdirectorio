@@ -12,7 +12,9 @@ export function registerPdfCommand(program: Command): void {
     .command('open')
     .description('Open the generated PDF in data/output')
     .action(() => {
-      const outputDir = path.resolve(process.cwd(), 'data/output')
+      const famDir = process.env.FAM_DIR
+      if (!famDir) { console.error(chalk.red('FAM_DIR is not set')); process.exit(1) }
+      const outputDir = path.join(famDir, 'data/output')
       const pdfs = fs.existsSync(outputDir)
         ? fs.readdirSync(outputDir).filter(f => f.endsWith('.pdf'))
         : []
@@ -30,8 +32,10 @@ export function registerPdfCommand(program: Command): void {
     .option('-o, --output <path>', 'Output file path')
     .action(async (opts) => {
       console.log(chalk.cyan('Generating PDF...'))
+      const famDir = process.env.FAM_DIR
+      if (!famDir) { console.error(chalk.red('FAM_DIR is not set')); process.exit(1) }
       try {
-        const outputDir = path.resolve(process.cwd(), 'data/output')
+        const outputDir = path.join(famDir, 'data/output')
         if (fs.existsSync(outputDir)) {
           for (const file of fs.readdirSync(outputDir)) {
             if (file.endsWith('.pdf')) {

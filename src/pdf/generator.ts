@@ -189,7 +189,9 @@ function buildNuclearFamilies(
 }
 
 export async function generatePdf(options: GenerateOptions = {}): Promise<string> {
-  const outputDir = path.resolve(process.cwd(), 'data/output')
+  const famDir = process.env.FAM_DIR
+  if (!famDir) throw new Error('FAM_DIR environment variable is not set')
+  const outputDir = path.join(famDir, 'data/output')
   fs.mkdirSync(outputDir, { recursive: true })
 
   const dateStr = new Date().toISOString().slice(0, 10)
