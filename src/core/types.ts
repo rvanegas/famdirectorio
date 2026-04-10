@@ -17,6 +17,7 @@ export interface Member {
   birthday: string | null
   photoPath: string | null
   notes: string | null
+  descVerifiedAt: string | null
 }
 
 export interface Relationship {

@@ -6,6 +6,7 @@ import { confirm, editor, input } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
 import * as membersRepo from '../../core/members.repository'
+import { membersTable } from '../utils/table'
 import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
 import * as familyNotesRepo from '../../core/familyNotes.repository'
 import * as mediaRepo from '../../core/media.repository'
@@ -368,6 +369,19 @@ export function registerFamilyCommand(program: Command): void {
       }
 
       if (!ok) process.exit(1)
+    })
+
+  famCmd
+    .command('unverified <date>')
+    .description('List members not verified since <date> (YYYY-MM-DD)')
+    .action((date) => {
+      if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)) {
+        console.error(chalk.red('Date must be YYYY-MM-DD'))
+        process.exit(1)
+      }
+      const result = membersRepo.findUnverifiedSince(date)
+      console.log(membersTable(result, ['generation', 'descVerifiedAt', 'city']))
+      console.log(chalk.dim(`${result.length} member(s) not verified since ${date}`))
     })
 
   // --- family note subcommands ---

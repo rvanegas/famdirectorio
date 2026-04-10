@@ -18,6 +18,7 @@ export const members = sqliteTable('members', {
   birthday: text('birthday'),
   photoPath: text('photo_path'),
   notes: text('notes'),
+  descVerifiedAt: text('desc_verified_at'),
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),
 })

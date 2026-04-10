@@ -157,39 +157,41 @@ export function registerEmailCommand(program: Command): void {
         console.log(chalk.dim('No emails logged yet.'))
         return
       }
-      const pdfLabel = (name: string | null) =>
-        name?.match(/v\d+\s+\d{4}-\d{2}-\d{2}|\d{4}-\d{2}-\d{2}/)?.[0] ?? name ?? '-'
+      const dateOnly = (s: string | null | undefined) => (s ?? '').slice(0, 10)
+
+      const pdfVersion = (name: string | null) => {
+        const m = name?.match(/v(\d+)/)
+        return m ? `v${m[1]}` : '-'
+      }
 
       const colW = {
-        id:       Math.max(2, ...entries.map(e => String(e.id).length)),
         memberId: Math.max(8, ...entries.map(e => String(e.memberId).length)),
-        date:     Math.max(4, ...entries.map(e => (e.sentAt ?? '').length)),
-        to:       Math.max(2, ...entries.map(e => e.toEmail.length)),
+        date:     Math.max(4, ...entries.map(e => dateOnly(e.sentAt).length)),
         template: Math.max(8, ...entries.map(e => e.template.length)),
         status:   Math.max(6, ...entries.map(e => e.status.length)),
+        pdf:      Math.max(3, ...entries.map(e => pdfVersion(e.pdfName ?? null).length)),
+        to:       Math.max(2, ...entries.map(e => e.toEmail.length)),
       }
 
       const pad = (s: string, w: number) => s.padEnd(w + 2)
 
       const header = chalk.cyan(
-        pad('ID', colW.id) +
         pad('MemberID', colW.memberId) +
         pad('Date', colW.date) +
-        pad('To', colW.to) +
         pad('Template', colW.template) +
         pad('Status', colW.status) +
-        'PDF'
+        pad('PDF', colW.pdf) +
+        'To'
       )
       const rows = entries.map(e =>
-        pad(String(e.id), colW.id) +
         pad(String(e.memberId), colW.memberId) +
-        pad(e.sentAt ?? '', colW.date) +
-        pad(e.toEmail, colW.to) +
+        pad(dateOnly(e.sentAt), colW.date) +
         pad(e.template, colW.template) +
         (e.status === 'sent'
           ? chalk.green(pad('sent', colW.status))
           : chalk.red(pad('error', colW.status))) +
-        pdfLabel(e.pdfName ?? null) +
+        pad(pdfVersion(e.pdfName ?? null), colW.pdf) +
+        e.toEmail +
         (e.error ? chalk.dim(` — ${e.error}`) : '')
       )
       console.log([header, ...rows].join('\n'))
