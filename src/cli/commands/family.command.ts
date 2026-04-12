@@ -372,9 +372,14 @@ export function registerFamilyCommand(program: Command): void {
     })
 
   famCmd
-    .command('unverified <date>')
-    .description('List members not verified since <date> (YYYY-MM-DD)')
-    .action((date) => {
+    .command('unverified [date]')
+    .description('List members not verified since <date> (YYYY-MM-DD, default: 2 years ago)')
+    .action((date?: string) => {
+      if (!date) {
+        const d = new Date()
+        d.setFullYear(d.getFullYear() - 2)
+        date = d.toISOString().slice(0, 10)
+      }
       if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date)) {
         console.error(chalk.red('Date must be YYYY-MM-DD'))
         process.exit(1)

@@ -115,23 +115,42 @@ export function findUnverifiedSince(date: string): Member[] {
       .map(r => r.id)
   )
 
-  const parentMap = new Map<number, number>()
+  const parentMap = new Map<number, number[]>()
   for (const rel of db.select().from(relationships).where(eq(relationships.type, 'child')).all()) {
-    parentMap.set(rel.toMemberId, rel.fromMemberId)
+    const parents = parentMap.get(rel.toMemberId) ?? []
+    parents.push(rel.fromMemberId)
+    parentMap.set(rel.toMemberId, parents)
   }
 
-  function hasVerifiedAncestor(id: number): boolean {
-    const visited = new Set<number>()
-    let cur = parentMap.get(id)
-    while (cur !== undefined && !visited.has(cur)) {
-      if (verifiedIds.has(cur)) return true
-      visited.add(cur)
-      cur = parentMap.get(cur)
+  const spouseMap = new Map<number, number[]>()
+  for (const rel of db.select().from(relationships).where(eq(relationships.type, 'spouse')).all()) {
+    const a = spouseMap.get(rel.fromMemberId) ?? []
+    a.push(rel.toMemberId)
+    spouseMap.set(rel.fromMemberId, a)
+    const b = spouseMap.get(rel.toMemberId) ?? []
+    b.push(rel.fromMemberId)
+    spouseMap.set(rel.toMemberId, b)
+  }
+
+  function isConnectedToVerified(id: number, visited = new Set<number>()): boolean {
+    if (visited.has(id)) return false
+    visited.add(id)
+    if (verifiedIds.has(id)) return true
+    for (const parentId of parentMap.get(id) ?? []) {
+      if (isConnectedToVerified(parentId, visited)) return true
     }
     return false
   }
 
-  return candidates.filter(m => !hasVerifiedAncestor(m.id))
+  function hasVerifiedConnection(id: number): boolean {
+    if (isConnectedToVerified(id)) return true
+    for (const spouseId of spouseMap.get(id) ?? []) {
+      if (isConnectedToVerified(spouseId)) return true
+    }
+    return false
+  }
+
+  return candidates.filter(m => !hasVerifiedConnection(m.id))
 }
 
 export function findByCity(city: string): Member[] {

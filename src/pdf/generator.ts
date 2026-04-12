@@ -257,7 +257,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   renderCover(doc, allMembers.length, version)
 
   // --- Foreword ---
-  const forewordPath = path.resolve(process.cwd(), 'data/foreword.md')
+  const forewordPath = path.join(famDir, 'data/foreword.md')
   if (fs.existsSync(forewordPath)) {
     doc.addPage()
     renderForeword(doc, fs.readFileSync(forewordPath, 'utf8'))

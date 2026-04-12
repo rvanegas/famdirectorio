@@ -69,7 +69,7 @@ export function renderEmail(
 }
 
 export function findLatestPdf(): string {
-  const outputDir = path.resolve(process.cwd(), 'data/output')
+  const outputDir = path.join(process.env.FAM_DIR!, 'data/output')
   if (!fs.existsSync(outputDir)) {
     throw new Error(`Output directory does not exist: ${outputDir}`)
   }
