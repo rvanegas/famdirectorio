@@ -304,7 +304,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     }
     if (m.email) {
       doc
-        .font('Helvetica-Oblique')
+        .font('Helvetica')
         .fontSize(8)
         .fillColor(SUBTEXT_COLOR)
         .text(m.email, colX() + 16, y, { width: colW - 16 })
