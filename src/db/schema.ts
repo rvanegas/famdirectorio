@@ -10,7 +10,7 @@ export const members = sqliteTable('members', {
   city: text('city'),
   occupation: text('occupation'),
   attended2023: integer('attended_2023'),
-  isAlive: integer('is_alive'),
+  isAlive: integer('is_alive').notNull().default(1),
   isRoot: integer('is_root').default(0),
   seniority: integer('seniority'),
   generation: integer('generation'),
@@ -19,6 +19,7 @@ export const members = sqliteTable('members', {
   photoPath: text('photo_path'),
   notes: text('notes'),
   descVerifiedAt: text('desc_verified_at'),
+  requestedAt: text('requested_at'),
   createdAt: text('created_at').default(sql`(datetime('now'))`),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`),
 })

@@ -2,7 +2,7 @@ import chalk from 'chalk'
 import type { Member, MediaAsset } from '../../core/types'
 import type { NuclearFamilyRow } from '../../core/nuclearFamilies.repository'
 
-type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes' | 'generation' | 'descVerifiedAt'
+type MemberField = 'city' | 'alive' | 'email' | 'phone' | 'instagram' | 'occupation' | 'seniority' | 'attended2023' | 'birthday' | 'notes' | 'generation' | 'descVerifiedAt' | 'requestedAt'
 
 const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; value: (m: Member) => string }> = {
   generation:   { label: 'Gen',          width:  5, value: m => m.generation !== null ? String(m.generation) : '-' },
@@ -17,6 +17,7 @@ const EXTRA_FIELD_CONFIG: Record<MemberField, { label: string; width: number; va
   birthday:     { label: 'Birthday',     width: 10, value: m => m.birthday ?? '-' },
   notes:        { label: 'Notes',        width: 30, value: m => m.notes ?? '-' },
   descVerifiedAt: { label: 'Desc.verified', width: 12, value: m => m.descVerifiedAt ?? '-' },
+  requestedAt:   { label: 'Requested at', width: 20, value: m => m.requestedAt ?? '-' },
 }
 
 export function membersTable(members: Member[], extraFields: string[] = []): string {
@@ -52,6 +53,7 @@ export function memberDetail(m: Member): string {
     `Attended 2023: ${m.attended2023 ? 'Yes' : 'No'}`,
     `Notes:         ${m.notes ?? '-'}`,
     `Desc verified: ${m.descVerifiedAt ?? '-'}`,
+    `Requested at:  ${m.requestedAt ?? '-'}`,
   ]
   return lines.join('\n')
 }
@@ -129,6 +131,7 @@ export function memberShow(m: Member, rel: MemberShowRelations): string {
     fmt('Attended 2023:', m.attended2023 ? 'Yes' : 'No'),
     fmt('Notes:', m.notes ?? '-'),
     fmt('Desc verified:', m.descVerifiedAt ?? '-'),
+    fmt('Requested at:', m.requestedAt ?? '-'),
     '',
     fmt('Parents:', nameList(rel.parents)),
     fmt('Spouse:', nameList(rel.spouses)),

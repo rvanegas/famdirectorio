@@ -18,6 +18,7 @@ export interface Member {
   photoPath: string | null
   notes: string | null
   descVerifiedAt: string | null
+  requestedAt: string | null
 }
 
 export interface Relationship {

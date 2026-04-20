@@ -51,6 +51,10 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   const descVerifiedAt = verifyNow
     ? new Date().toISOString().slice(0, 10)
     : (defaults.descVerifiedAt ?? null)
+  const setRequestedToday = await confirm({ message: 'Mark as requested today?', default: false })
+  const requestedAt = setRequestedToday
+    ? new Date().toISOString().slice(0, 10)
+    : (defaults.requestedAt ?? null)
 
   return {
     firstName,
@@ -67,5 +71,6 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     attended2023,
     isRoot: defaults.isRoot ?? false,
     descVerifiedAt,
+    requestedAt,
   }
 }

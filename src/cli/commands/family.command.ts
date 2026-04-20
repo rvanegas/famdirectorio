@@ -374,7 +374,8 @@ export function registerFamilyCommand(program: Command): void {
   famCmd
     .command('unverified [date]')
     .description('List members not verified since <date> (YYYY-MM-DD, default: 2 years ago)')
-    .action((date?: string) => {
+    .option('-g, --generation <n>', 'Limit to generation N and earlier', parseInt)
+    .action((date?: string, opts: { generation?: number } = {}) => {
       if (!date) {
         const d = new Date()
         d.setFullYear(d.getFullYear() - 2)
@@ -384,8 +385,8 @@ export function registerFamilyCommand(program: Command): void {
         console.error(chalk.red('Date must be YYYY-MM-DD'))
         process.exit(1)
       }
-      const result = membersRepo.findUnverifiedSince(date)
-      console.log(membersTable(result, ['generation', 'descVerifiedAt', 'city']))
+      const result = membersRepo.findUnverifiedSince(date, opts.generation)
+      console.log(membersTable(result, ['generation', 'phone', 'email', 'requestedAt']))
       console.log(chalk.dim(`${result.length} member(s) not verified since ${date}`))
     })
 

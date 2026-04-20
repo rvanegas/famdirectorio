@@ -151,8 +151,10 @@ export function registerEmailCommand(program: Command): void {
   emailCmd
     .command('log')
     .description('Show sent email history')
-    .action(() => {
-      const entries = emailLogRepo.findAll()
+    .option('-t, --template <name>', 'Filter by template name')
+    .action((opts: { template?: string }) => {
+      let entries = emailLogRepo.findAll()
+      if (opts.template) entries = entries.filter(e => e.template === opts.template)
       if (entries.length === 0) {
         console.log(chalk.dim('No emails logged yet.'))
         return
@@ -164,12 +166,19 @@ export function registerEmailCommand(program: Command): void {
         return m ? `v${m[1]}` : '-'
       }
 
+      const memberName = (id: number | null) => {
+        if (id == null) return ''
+        const m = membersRepo.findById(id)
+        return m ? `${m.firstName} ${m.lastName ?? ''}`.trim() : ''
+      }
+
       const colW = {
         memberId: Math.max(8, ...entries.map(e => String(e.memberId).length)),
         date:     Math.max(4, ...entries.map(e => dateOnly(e.sentAt).length)),
         template: Math.max(8, ...entries.map(e => e.template.length)),
         status:   Math.max(6, ...entries.map(e => e.status.length)),
         pdf:      Math.max(3, ...entries.map(e => pdfVersion(e.pdfName ?? null).length)),
+        name:     Math.max(4, ...entries.map(e => memberName(e.memberId).length)),
         to:       Math.max(2, ...entries.map(e => e.toEmail.length)),
       }
 
@@ -181,6 +190,7 @@ export function registerEmailCommand(program: Command): void {
         pad('Template', colW.template) +
         pad('Status', colW.status) +
         pad('PDF', colW.pdf) +
+        pad('Name', colW.name) +
         'To'
       )
       const rows = entries.map(e =>
@@ -191,6 +201,7 @@ export function registerEmailCommand(program: Command): void {
           ? chalk.green(pad('sent', colW.status))
           : chalk.red(pad('error', colW.status))) +
         pad(pdfVersion(e.pdfName ?? null), colW.pdf) +
+        pad(memberName(e.memberId), colW.name) +
         e.toEmail +
         (e.error ? chalk.dim(` — ${e.error}`) : '')
       )

@@ -1,6 +1,6 @@
 import { db, sqlite } from '../db/client'
 import { members } from '../db/schema'
-import { and, eq, gte, isNotNull, isNull, like, lt, or, sql } from 'drizzle-orm'
+import { and, eq, gte, isNotNull, isNull, like, lt, lte, or, sql } from 'drizzle-orm'
 import { relationships } from '../db/schema'
 import type { Member } from './types'
 import path from 'path'
@@ -99,11 +99,12 @@ export function search(text: string): Member[] {
     .map(toMember)
 }
 
-export function findUnverifiedSince(date: string): Member[] {
+export function findUnverifiedSince(date: string, maxGeneration?: number): Member[] {
+  const genFilter = maxGeneration != null ? lte(members.generation, maxGeneration) : undefined
   const candidates = db
     .select()
     .from(members)
-    .where(or(isNull(members.descVerifiedAt), lt(members.descVerifiedAt, date)))
+    .where(and(or(isNull(members.descVerifiedAt), lt(members.descVerifiedAt, date)), genFilter))
     .all()
     .map(toMember)
 
@@ -150,7 +151,7 @@ export function findUnverifiedSince(date: string): Member[] {
     return false
   }
 
-  return candidates.filter(m => !hasVerifiedConnection(m.id))
+  return candidates.filter(m => m.isAlive && !hasVerifiedConnection(m.id))
 }
 
 export function findByCity(city: string): Member[] {
