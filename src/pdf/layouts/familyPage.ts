@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import type { Member, MediaAsset } from '../../core/types'
 import type { BranchSection } from '../generator'
+import { FONT, FONT_BLACK, FONT_ITALIC, type BranchPalette } from '../theme'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -15,12 +16,8 @@ function resolvePhoto(p: string | null): string | null {
   return path.join(process.env.FAM_DIR!, p)
 }
 
-function branchColor(colorHex: string | null | undefined): string {
-  return colorHex ?? '#1a1a2e'
-}
-
 export interface NuclearFamily {
-  heads: Member[]    // 1 or 2 parents/heads
+  heads: Member[]
   children: Member[]
   branch: BranchSection | null
   familyMedia: MediaAsset[]
@@ -28,21 +25,23 @@ export interface NuclearFamily {
   notes: string[]
 }
 
-export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
+export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily, bgPalette?: BranchPalette): void {
   const { width, height } = doc.page
-  const accent = branchColor(family.branch?.colorHex)
+  const palette = family.branch?.palette ?? bgPalette
+
+  // Full-page light tint background
+  if (palette) {
+    doc.rect(0, 0, width, height).fill(palette.light)
+  }
 
   // Top accent bar
-  doc.rect(0, 0, width, 6).fill(accent)
+  doc.rect(0, 0, width, 6).fill(palette?.medium ?? '#cccccc')
 
-  // Branch label (top right)
+  // Branch / generation label (top right)
   if (family.branch) {
     const gen = family.heads[0]?.generation
     const genSuffix = gen != null ? `, GENERACIÓN ${gen}` : ''
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor(accent)
+    doc.font(FONT).fontSize(9).fillColor(palette?.medium ?? '#888888')
       .text(`RAMA ${family.branch.firstName.toUpperCase()}${genSuffix}`, MARGIN, 18, { align: 'right', width: width - MARGIN * 2 })
   }
 
@@ -53,25 +52,14 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
   } else {
     const colWidth = (width - MARGIN * 2 - 20) / 2
     renderParentBlock(doc, family.heads[0], MARGIN, parentsY, colWidth)
-    // Vertical divider between parents
-    const divX = MARGIN + colWidth + 10
-    const divTop = parentsY
-    const divBot = parentsY + PHOTO_SIZE + 20
-    doc.moveTo(divX, divTop).lineTo(divX, divBot).strokeColor('#dddddd').lineWidth(0.5).stroke()
     renderParentBlock(doc, family.heads[1], MARGIN + colWidth + 20, parentsY, colWidth)
   }
 
-  // Separator line
-  const sepY = parentsY + PHOTO_SIZE + 30
-  doc.moveTo(MARGIN, sepY).lineTo(width - MARGIN, sepY).strokeColor('#dddddd').lineWidth(0.5).stroke()
-
   // --- Children section ---
+  const sepY = parentsY + PHOTO_SIZE + 30
   if (family.children.length > 0) {
     const childLabelY = sepY + 12
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(10)
-      .fillColor('#888888')
+    doc.font(FONT).fontSize(10).fillColor('#888888')
       .text('Hijos', MARGIN, childLabelY)
 
     const childStartY = childLabelY + 18
@@ -88,42 +76,29 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
       const cx = MARGIN + col * (colWidth + COL_GAP)
       const cy = childStartY + row * (CHILD_CARD_H + 12)
 
-      if (cy + CHILD_CARD_H > height - 50) break // don't overflow page
+      if (cy + CHILD_CARD_H > height - 50) break
 
-      // Photo on the left
       const photoPath = resolvePhoto(child.photoPath ?? null)
       if (photoPath && fs.existsSync(photoPath)) {
-        doc.image(photoPath, cx, cy, {
-          width: CHILD_PHOTO,
-          height: CHILD_PHOTO,
-          cover: [CHILD_PHOTO, CHILD_PHOTO],
-        })
+        doc.image(photoPath, cx, cy, { width: CHILD_PHOTO, height: CHILD_PHOTO, cover: [CHILD_PHOTO, CHILD_PHOTO] })
       } else {
         doc.rect(cx, cy, CHILD_PHOTO, CHILD_PHOTO).fill('#eeeeee')
       }
 
-      // Name + city + occupation to the right of photo
       const textX = cx + CHILD_PHOTO + 10
       const textW = colWidth - CHILD_PHOTO - 10
 
-      // First name — bold, prominent
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1a1a2e')
+      doc.font(FONT_BLACK).fontSize(12).fillColor('#1a1a2e')
         .text(child.firstName, textX, cy, { width: textW })
-      // Last name — lighter weight, off-black, starts wherever first name ended
       if (child.lastName) {
-        doc.font('Helvetica').fontSize(8).fillColor('#4a4a4a')
+        doc.font(FONT).fontSize(9).fillColor('#4a4a4a')
           .text(child.lastName, textX, doc.y, { width: textW })
       }
 
-      // Details start wherever the name block ended
       let textY = doc.y + 2
-      const childDetails: [string, string | null | undefined][] = [
-        ['Ciudad', child.city],
-        ['Ocupación', child.occupation],
-      ]
-      for (const [, value] of childDetails) {
+      for (const value of [child.city, child.occupation]) {
         if (!value) continue
-        doc.font('Helvetica').fontSize(7.5).fillColor('#1a1a2e')
+        doc.font(FONT).fontSize(8).fillColor('#1a1a2e')
           .text(value, textX, textY, { width: textW })
         textY += 12
       }
@@ -133,15 +108,13 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
   // --- Family media section ---
   const photoMedia = family.familyMedia.filter(m => m.mediaType === 'photo' || m.mediaType == null)
   if (photoMedia.length > 0) {
-    // Determine Y start: after children or after separator if no children
     let mediaStartY: number
     if (family.children.length > 0) {
       const CHILD_COLS = 3
       const COL_GAP = 16
       const CHILD_PHOTO = 64
       const CHILD_CARD_H = CHILD_PHOTO + 8
-      const childCount = Math.min(family.children.length, /* same cap */ family.children.length)
-      const childRows = Math.ceil(childCount / CHILD_COLS)
+      const childRows = Math.ceil(family.children.length / CHILD_COLS)
       const childLabelY = sepY + 12
       const childStartY = childLabelY + 18
       mediaStartY = childStartY + childRows * (CHILD_CARD_H + 12) + 8
@@ -153,10 +126,8 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
     const MEDIA_GAP = 10
     const mediaColW = (width - MARGIN * 2 - MEDIA_GAP * (MEDIA_COLS - 1)) / MEDIA_COLS
 
-    // Only draw separator + label if at least one image fits on the page
     if (mediaStartY + 30 + PHOTO_SIZE <= height - 50) {
-      doc.moveTo(MARGIN, mediaStartY).lineTo(width - MARGIN, mediaStartY).strokeColor('#dddddd').lineWidth(0.5).stroke()
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#888888').text('Álbum', MARGIN, mediaStartY + 12)
+      doc.font(FONT).fontSize(10).fillColor('#888888').text('Álbum', MARGIN, mediaStartY + 12)
       mediaStartY += 30
     }
 
@@ -174,11 +145,7 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
         : path.join(process.env.FAM_DIR!, asset.filePath)
 
       if (fs.existsSync(filePath)) {
-        doc.image(filePath, mx, my, {
-          width: PHOTO_SIZE,
-          height: PHOTO_SIZE,
-          cover: [PHOTO_SIZE, PHOTO_SIZE],
-        })
+        doc.image(filePath, mx, my, { width: PHOTO_SIZE, height: PHOTO_SIZE, cover: [PHOTO_SIZE, PHOTO_SIZE] })
       } else {
         doc.rect(mx, my, PHOTO_SIZE, PHOTO_SIZE).fill('#eeeeee')
       }
@@ -210,75 +177,46 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily): void {
     }
 
     if (notesStartY + 30 < height - 50) {
-      doc.moveTo(MARGIN, notesStartY).lineTo(width - MARGIN, notesStartY).strokeColor('#dddddd').lineWidth(0.5).stroke()
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#888888').text('Notas', MARGIN, notesStartY + 12)
+      doc.font(FONT).fontSize(10).fillColor('#888888').text('Notas', MARGIN, notesStartY + 12)
       let ny = notesStartY + 30
       for (const note of family.notes) {
         if (ny + 12 > height - 50) break
-        doc.font('Helvetica').fontSize(9).fillColor('#333333').text(note, MARGIN, ny, { width: width - MARGIN * 2 })
+        doc.font(FONT).fontSize(9).fillColor('#333333').text(note, MARGIN, ny, { width: width - MARGIN * 2 })
         ny += 14
       }
     }
   }
 
   // Page number footer
-  doc
-    .font('Helvetica')
-    .fontSize(9)
-    .fillColor('#aaaaaa')
+  doc.font(FONT).fontSize(9).fillColor('#aaaaaa')
     .text(String(doc.bufferedPageRange().count), 0, height - 40, { align: 'center', width })
 }
 
-function renderParentBlock(
-  doc: PDFDoc,
-  member: Member,
-  x: number,
-  y: number,
-  w: number,
-): void {
-  // Photo
+function renderParentBlock(doc: PDFDoc, member: Member, x: number, y: number, w: number): void {
   const photoPath = resolvePhoto(member.photoPath ?? null)
   if (photoPath && fs.existsSync(photoPath)) {
-    doc.image(photoPath, x, y, {
-      width: PHOTO_SIZE,
-      height: PHOTO_SIZE,
-      cover: [PHOTO_SIZE, PHOTO_SIZE],
-    })
+    doc.image(photoPath, x, y, { width: PHOTO_SIZE, height: PHOTO_SIZE, cover: [PHOTO_SIZE, PHOTO_SIZE] })
   } else {
     doc.rect(x, y, PHOTO_SIZE, PHOTO_SIZE).fill('#dddddd')
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#999999')
+    doc.font(FONT).fontSize(9).fillColor('#999999')
       .text('Sin foto', x, y + PHOTO_SIZE / 2 - 5, { width: PHOTO_SIZE, align: 'center' })
   }
 
-  // Name + details to the right of photo
   const textX = x + PHOTO_SIZE + 14
   const textW = w - PHOTO_SIZE - 14
 
-  // First name — bold, large
-  doc.font('Helvetica-Bold').fontSize(16).fillColor('#1a1a2e')
+  doc.font(FONT_BLACK).fontSize(20).fillColor('#1a1a2e')
     .text(member.firstName, textX, y, { width: textW })
-  // Last name — regular weight, off-black, starts wherever first name ended
   if (member.lastName) {
-    doc.font('Helvetica').fontSize(13).fillColor('#4a4a4a')
+    doc.font(FONT).fontSize(15).fillColor('#4a4a4a')
       .text(member.lastName, textX, doc.y, { width: textW })
   }
 
-  // Details start wherever the name block ended
   let textY = doc.y + 4
-
-  const details: [string, string | null | undefined][] = [
-    ['Ciudad', member.city],
-    ['Ocupación', member.occupation],
-  ]
-
-  for (const [, value] of details) {
+  for (const value of [member.city, member.occupation]) {
     if (!value) continue
-    doc.font('Helvetica').fontSize(9).fillColor('#1a1a2e')
+    doc.font(FONT).fontSize(9).fillColor('#1a1a2e')
       .text(value, textX, textY, { width: textW })
     textY += 14
   }
-
 }

@@ -1,46 +1,43 @@
 import PDFDocument from 'pdfkit'
 import type { BranchSection } from '../generator'
+import { FONT, ARBOL_RAMA_L, ARBOL_RAMA_R, drawImageMultiply } from '../theme'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
-export function renderBranchDivider(doc: PDFDoc, branch: BranchSection, memberCount: number): void {
+export function renderBranchDivider(doc: PDFDoc, branch: BranchSection, memberCount: number, branchIndex: number): void {
   const { width, height } = doc.page
-  const accent = branch.colorHex ?? '#1a1a2e'
 
-  // Full-page background
-  doc.rect(0, 0, width, height).fill(accent)
+  doc.rect(0, 0, width, height).fill(branch.palette.saturated)
 
-  const nameFontSize = 40
-  const nameLineHeight = nameFontSize * 1.35
-  const lines = [branch.firstName, branch.lastName].filter(Boolean)
-  const totalNameHeight = lines.length * nameLineHeight
-  const blockStart = (height - totalNameHeight) / 2 - 10
+  const labelY = height * 0.21
+  const nameY  = height * 0.26
+  const countY = height * 0.84
+  const textW  = width - 144
 
-  // Label above the block
-  doc
-    .font('Helvetica')
-    .fontSize(16)
-    .fillColor('#ffffff', 0.75)
-    .text('Rama', 72, blockStart - 48, { align: 'center', width: width - 144 })
+  doc.font(FONT).fontSize(13).fillColor('#000000')
+    .text('Rama', 72, labelY, { align: 'center', width: textW })
 
-  // Name lines
-  let y = blockStart
-  for (const line of lines) {
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(nameFontSize)
-      .fillColor('#ffffff')
-      .text(line, 72, y, { align: 'center', width: width - 144 })
-    y += nameLineHeight
+  doc.font(FONT).fontSize(54).fillColor('#000000')
+    .text(branch.firstName, 72, nameY, { align: 'center', width: textW })
+
+  if (branch.lastName) {
+    doc.font(FONT).fontSize(26).fillColor('#000000')
+      .text(branch.lastName, 72, doc.y + 2, { align: 'center', width: textW })
   }
 
-  // Member count below the block
-  doc
-    .font('Helvetica')
-    .fontSize(16)
-    .fillColor('#ffffff', 0.75)
-    .text(`${memberCount} miembros`, 0, y + 32, { align: 'center', width })
+  const nameEnd = doc.y
 
-  // Bottom decoration
-  doc.fillColor('#ffffff', 0.3).rect(0, height - 8, width, 8).fill()
+  // Tree vertically centered in the gap between name and member count;
+  // shifted inward from the corner by half the asset width.
+  const treeH = 200
+  const treeW = Math.round(treeH * (508 / 580))
+  const treeY = (nameEnd + countY - treeH) / 2
+  if (branchIndex % 2 === 0) {
+    drawImageMultiply(doc, ARBOL_RAMA_L, Math.round(treeW / 2), treeY, treeW, treeH)
+  } else {
+    drawImageMultiply(doc, ARBOL_RAMA_R, width - Math.round(treeW / 2) - treeW, treeY, treeW, treeH)
+  }
+
+  doc.font(FONT).fontSize(13).fillColor('#000000')
+    .text(`${memberCount} Miembros`, 72, countY, { align: 'center', width: textW })
 }

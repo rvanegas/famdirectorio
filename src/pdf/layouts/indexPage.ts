@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit'
 import type { Member } from '../../core/types'
+import { FONT, FONT_BLACK, FONT_ITALIC } from '../theme'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -73,7 +74,7 @@ function renderIndexSection(
   // Title page header
   doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
   doc
-    .font('Helvetica-Bold')
+    .font(FONT_BLACK)
     .fontSize(24)
     .fillColor(HEADING_COLOR)
     .text(title, MARGIN, 28, { width: width - MARGIN * 2 })
@@ -112,7 +113,7 @@ function renderIndexSection(
     ensureSpace(Math.min(groupH, 30))
 
     doc
-      .font('Helvetica-Bold')
+      .font(FONT_BLACK)
       .fontSize(10)
       .fillColor(HEADING_COLOR)
       .text(entry.group, colX(), y, { width: colW })
@@ -129,7 +130,7 @@ function renderIndexSection(
     for (const m of entry.members) {
       ensureSpace(13)
       doc
-        .font('Helvetica')
+        .font(FONT)
         .fontSize(9)
         .fillColor(NAME_COLOR)
         .text(lastFirst(m), colX() + 8, y, { width: colW - 8 })
@@ -139,7 +140,7 @@ function renderIndexSection(
         const subX = colX() + 8 + nameW + 4
         if (subX + 20 < colX() + colW) {
           doc
-            .font('Helvetica-Oblique')
+            .font(FONT_ITALIC)
             .fontSize(8)
             .fillColor(SUBTEXT_COLOR)
             .text(`— ${m.city}`, subX, y + 0.5, { width: colX() + colW - subX })
@@ -149,7 +150,7 @@ function renderIndexSection(
         const subX = colX() + 8 + nameW + 4
         if (subX + 20 < colX() + colW) {
           doc
-            .font('Helvetica-Oblique')
+            .font(FONT_ITALIC)
             .fontSize(8)
             .fillColor(SUBTEXT_COLOR)
             .text(`— ${m.occupation}`, subX, y + 0.5, { width: colX() + colW - subX })
@@ -168,7 +169,7 @@ function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
 
   doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
   doc
-    .font('Helvetica-Bold')
+    .font(FONT_BLACK)
     .fontSize(24)
     .fillColor(HEADING_COLOR)
     .text('Índice de Cumpleaños', MARGIN, 28, { width: width - MARGIN * 2 })
@@ -205,7 +206,7 @@ function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
     ensureSpace(Math.min(16 + 14 + entry.members.length * 13, 30))
 
     doc
-      .font('Helvetica-Bold')
+      .font(FONT_BLACK)
       .fontSize(10)
       .fillColor(HEADING_COLOR)
       .text(entry.group, colX(), y, { width: colW })
@@ -223,12 +224,12 @@ function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
       ensureSpace(13)
       const day = m.birthday!.slice(3, 5)
       doc
-        .font('Helvetica-Bold')
+        .font(FONT_BLACK)
         .fontSize(9)
         .fillColor(SUBTEXT_COLOR)
         .text(day, colX() + 8, y, { width: 18 })
       doc
-        .font('Helvetica')
+        .font(FONT)
         .fontSize(9)
         .fillColor(NAME_COLOR)
         .text(lastFirst(m), colX() + 28, y, { width: colW - 28 })
@@ -245,7 +246,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
 
   doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
   doc
-    .font('Helvetica-Bold')
+    .font(FONT_BLACK)
     .fontSize(24)
     .fillColor(HEADING_COLOR)
     .text('Índice de Contactos', MARGIN, 28, { width: width - MARGIN * 2 })
@@ -288,7 +289,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     ensureSpace(14 + lines * 11)
 
     doc
-      .font('Helvetica-Bold')
+      .font(FONT_BLACK)
       .fontSize(9)
       .fillColor(NAME_COLOR)
       .text(lastFirst(m), colX() + 8, y, { width: colW - 8 })
@@ -296,7 +297,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
 
     if (m.phone) {
       doc
-        .font('Helvetica')
+        .font(FONT)
         .fontSize(8)
         .fillColor(SUBTEXT_COLOR)
         .text(m.phone, colX() + 16, y, { width: colW - 16 })
@@ -304,7 +305,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     }
     if (m.email) {
       doc
-        .font('Helvetica')
+        .font(FONT)
         .fontSize(8)
         .fillColor(SUBTEXT_COLOR)
         .text(m.email, colX() + 16, y, { width: colW - 16 })
@@ -312,7 +313,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     }
     if (m.instagram) {
       doc
-        .font('Helvetica')
+        .font(FONT)
         .fontSize(8)
         .fillColor(SUBTEXT_COLOR)
         .text(m.instagram, colX() + 16, y, { width: colW - 16 })
