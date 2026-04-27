@@ -13,6 +13,7 @@ function toMember(row: typeof members.$inferSelect): Member {
 
 export interface TreeVerifyResult {
   orphans: Member[]
+  inLawsWithSeniority: Member[]
 }
 
 export function verifyTree(): TreeVerifyResult {
@@ -53,5 +54,11 @@ export function verifyTree(): TreeVerifyResult {
   }
 
   const orphans = allMembers.filter(m => !valid.has(m.id)).map(toMember)
-  return { orphans }
+
+  // In-laws: spouses of descendants who are not themselves descendants
+  const inLawsWithSeniority = allMembers
+    .filter(m => valid.has(m.id) && !descendants.has(m.id) && m.seniority !== null)
+    .map(toMember)
+
+  return { orphans, inLawsWithSeniority }
 }

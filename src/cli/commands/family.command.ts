@@ -114,7 +114,7 @@ export function registerFamilyCommand(program: Command): void {
       let ok = true
 
       // --- Tree connectivity check ---
-      const { orphans } = verifyTree()
+      const { orphans, inLawsWithSeniority } = verifyTree()
       if (orphans.length === 0) {
         console.log(chalk.green('✓ All members connected to root'))
       } else {
@@ -122,6 +122,19 @@ export function registerFamilyCommand(program: Command): void {
         console.log(chalk.red(`✗ ${orphans.length} member(s) not connected to root:`))
         for (const m of orphans) {
           console.log(`  ID ${m.id}  ${m.firstName} ${m.lastName ?? ''}`.trim())
+        }
+      }
+
+      // --- In-law seniority check ---
+      // In-laws are spouses of descendants; they have no birth order within the family tree
+      if (inLawsWithSeniority.length === 0) {
+        console.log(chalk.green('✓ No in-laws have seniority set'))
+      } else {
+        ok = false
+        console.log(chalk.red(`✗ ${inLawsWithSeniority.length} in-law(s) with seniority set (in-laws have no birth order):`))
+        for (const m of inLawsWithSeniority) {
+          const name = `${m.firstName} ${m.lastName ?? ''}`.trim()
+          console.log(`  ID ${m.id}  ${name}  — seniority=${m.seniority}`)
         }
       }
 
