@@ -13,7 +13,11 @@ import {
 
 type Member = NonNullable<ReturnType<typeof membersRepo.findById>>
 
-function resolveRecipients(opts: { members?: string; generation?: number }): Member[] | null {
+function resolveRecipients(opts: { members?: string; generation?: number; all?: boolean }): Member[] | null {
+  if (opts.all) {
+    return membersRepo.findAll()
+  }
+
   if (opts.members != null) {
     const ids = opts.members.split(',').map((s) => {
       const n = parseInt(s.trim(), 10)
@@ -42,7 +46,7 @@ function resolveRecipients(opts: { members?: string; generation?: number }): Mem
     return members
   }
 
-  console.error(chalk.red('Specify recipients with -m <ids> or -g <generation>.'))
+  console.error(chalk.red('Specify recipients with -a, -m <ids>, or -g <generation>.'))
   process.exit(1)
 }
 
@@ -53,6 +57,7 @@ export function registerEmailCommand(program: Command): void {
     .command('list')
     .description('List members who would receive the email')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
+    .option('-a, --all', 'All members')
     .option('-m, --members <ids>', 'Comma-separated member IDs')
     .option('-g, --generation <n>', 'Members up to and including generation N', parseInt)
     .action((opts) => {
@@ -80,6 +85,7 @@ export function registerEmailCommand(program: Command): void {
     .command('send')
     .description('Send an email with the directory attached')
     .requiredOption('-t, --template <name>', 'Template name (without extension)')
+    .option('-a, --all', 'All members')
     .option('-m, --members <ids>', 'Comma-separated member IDs')
     .option('-g, --generation <n>', 'Send to all members up to and including generation N', parseInt)
     .option('-c, --cc-senders', 'CC all senders on every email')
