@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import path from 'path'
 import fs from 'fs'
-import { confirm, editor, input } from '@inquirer/prompts'
+import { checkbox, confirm, editor, input } from '@inquirer/prompts'
 import { sqlite } from '../../db/client'
 import { verifyTree } from '../../core/tree'
 import * as membersRepo from '../../core/members.repository'
@@ -164,6 +164,59 @@ export function registerFamilyCommand(program: Command): void {
         }
       }
 
+      // --- Duplicate relationships check ---
+      {
+        const dupPairs = sqlite
+          .prepare(`SELECT MIN(from_member_id, to_member_id) AS a,
+                           MAX(from_member_id, to_member_id) AS b,
+                           COUNT(*) AS cnt
+                    FROM relationships
+                    GROUP BY MIN(from_member_id, to_member_id), MAX(from_member_id, to_member_id)
+                    HAVING cnt > 1
+                    ORDER BY a, b`)
+          .all() as { a: number; b: number; cnt: number }[]
+
+        if (dupPairs.length === 0) {
+          console.log(chalk.green('✓ No duplicate relationships between any two members'))
+        } else {
+          ok = false
+          console.log(chalk.red(`✗ ${dupPairs.length} pair(s) with multiple relationships:`))
+          for (const { a, b, cnt } of dupPairs) {
+            const ma = sqlite.prepare(`SELECT first_name, last_name FROM members WHERE id=?`).get(a) as { first_name: string; last_name: string | null } | undefined
+            const mb = sqlite.prepare(`SELECT first_name, last_name FROM members WHERE id=?`).get(b) as { first_name: string; last_name: string | null } | undefined
+            const nameA = ma ? `${ma.first_name} ${ma.last_name ?? ''}`.trim() : `ID ${a}`
+            const nameB = mb ? `${mb.first_name} ${mb.last_name ?? ''}`.trim() : `ID ${b}`
+            console.log(`  ${nameA} (${a}) ↔ ${nameB} (${b})  — ${cnt} relationships`)
+
+            const rows = sqlite
+              .prepare(`SELECT id, from_member_id, to_member_id, type, notes
+                         FROM relationships
+                         WHERE (from_member_id=? AND to_member_id=?) OR (from_member_id=? AND to_member_id=?)
+                         ORDER BY id`)
+              .all(a, b, b, a) as { id: number; from_member_id: number; to_member_id: number; type: string; notes: string | null }[]
+
+            const choices = rows.map(r => {
+              const mf = sqlite.prepare(`SELECT first_name, last_name FROM members WHERE id=?`).get(r.from_member_id) as { first_name: string; last_name: string | null } | undefined
+              const mt = sqlite.prepare(`SELECT first_name, last_name FROM members WHERE id=?`).get(r.to_member_id) as { first_name: string; last_name: string | null } | undefined
+              const fromName = mf ? `${mf.first_name} ${mf.last_name ?? ''}`.trim() : `ID ${r.from_member_id}`
+              const toName   = mt ? `${mt.first_name} ${mt.last_name ?? ''}`.trim() : `ID ${r.to_member_id}`
+              const label = `ID ${r.id}  ${r.type}  ${fromName} → ${toName}${r.notes ? `  (${r.notes})` : ''}`
+              return { name: label, value: r.id }
+            })
+
+            const toDelete = await checkbox({
+              message: `  Select relationship(s) to DELETE (keep the one(s) you want):`,
+              choices,
+            })
+
+            for (const rid of toDelete) {
+              sqlite.prepare(`DELETE FROM relationships WHERE id=?`).run(rid)
+              console.log(chalk.green(`  Deleted relationship ID ${rid}`))
+            }
+          }
+        }
+      }
+
       // --- Nuclear families consistency check ---
       const expected = derivedFamilies()
       const stored = storedFamilies()
@@ -280,7 +333,13 @@ export function registerFamilyCommand(program: Command): void {
         console.log(chalk.red(`✗ ${genMismatches.length} member(s) with missing or stale generation:`))
         for (const m of genMismatches) {
           const name = `${m.first_name} ${m.last_name ?? ''}`.trim()
-          console.log(`  ID ${m.id}  ${name}  stored=${m.generation ?? 'null'}  computed=${computed.get(m.id)}`)
+          const computedGen = computed.get(m.id)
+          console.log(`  ID ${m.id}  ${name}  stored=${m.generation ?? 'null'}  computed=${computedGen}`)
+          const fix = await confirm({ message: `  Set generation for ID ${m.id} (${name}) to ${computedGen}?`, default: true })
+          if (fix) {
+            sqlite.prepare(`UPDATE members SET generation=? WHERE id=?`).run(computedGen ?? null, m.id)
+            console.log(chalk.green(`  Updated ID ${m.id} generation to ${computedGen}`))
+          }
         }
       }
 

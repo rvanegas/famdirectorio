@@ -7,6 +7,7 @@ import * as nucFamRepo from '../../core/nuclearFamilies.repository'
 import * as mediaRepo from '../../core/media.repository'
 import { membersTable, memberDetail, memberShow } from '../utils/table'
 import { promptMember } from '../utils/prompts'
+import { addRelationship } from './relationship.command'
 
 export function registerMemberCommand(program: Command): void {
   const memberCmd = program.command('member').description('Manage family members')
@@ -99,12 +100,27 @@ export function registerMemberCommand(program: Command): void {
     })
 
   memberCmd
-    .command('add')
-    .description('Add a new member (interactive)')
-    .action(async () => {
+    .command('add [relationType] [relatedId]')
+    .description('Add a new member (interactive). Optionally link: add child <parentId> | add spouse <partnerId>')
+    .action(async (relationType?: string, relatedId?: string) => {
       const data = await promptMember()
       const member = membersRepo.create({ ...data, photoPath: null, generation: null })
       console.log(chalk.green(`Created member ID ${member.id}: ${member.firstName} ${member.lastName ?? ''}`))
+
+      if (relationType && relatedId) {
+        if (relationType !== 'child' && relationType !== 'spouse') {
+          console.error(chalk.red(`Invalid relationship type "${relationType}". Must be: child, spouse`))
+          process.exit(1)
+        }
+        const relatedNum = parseInt(relatedId, 10)
+        if (!membersRepo.findById(relatedNum)) {
+          console.error(chalk.red(`Member ${relatedId} not found`))
+          process.exit(1)
+        }
+        const fromId = relationType === 'child' ? relatedNum : member.id
+        const toId   = relationType === 'child' ? member.id  : relatedNum
+        await addRelationship(fromId, toId, relationType)
+      }
     })
 
   memberCmd

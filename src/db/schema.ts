@@ -93,3 +93,14 @@ export const familyNotes = sqliteTable('family_notes', {
 
 export type FamilyNote = typeof familyNotes.$inferSelect
 export type NewFamilyNote = typeof familyNotes.$inferInsert
+
+export const orphans = sqliteTable('orphans', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name'),
+  birthday: text('birthday'),
+  createdAt: text('created_at').default(sql`(datetime('now'))`),
+})
+
+export type Orphan = typeof orphans.$inferSelect
+export type NewOrphan = typeof orphans.$inferInsert

@@ -39,6 +39,13 @@ export interface MediaAsset {
   isPrimary: boolean
 }
 
+export interface Orphan {
+  id: number
+  firstName: string
+  lastName: string | null
+  birthday: string | null
+}
+
 export interface MemberWithMedia extends Member {
   primaryPhoto: string | null
   allMedia: MediaAsset[]

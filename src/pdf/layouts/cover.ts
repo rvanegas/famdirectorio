@@ -33,7 +33,7 @@ export function renderCover(doc: PDFDoc, memberCount: number, version: number): 
 
 export function renderForeword(doc: PDFDoc, markdown: string): void {
   const { width, height } = doc.page
-  const margin = 72
+  const margin = 63
   const contentWidth = width - margin * 2
 
   doc.rect(0, 0, width, height).fill('#faf8f3')

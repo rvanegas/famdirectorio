@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit'
-import type { Member } from '../../core/types'
+import type { Member, Orphan } from '../../core/types'
 import { FONT, FONT_BLACK, FONT_ITALIC } from '../theme'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
@@ -321,6 +321,62 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     }
 
     y += 4
+  }
+}
+
+export function renderOrphansPage(doc: PDFDoc, orphans: Orphan[]): void {
+  const { width, height } = doc.page
+  const colW = (width - MARGIN * 2 - COL_GAP) / 2
+
+  doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+  doc
+    .font(FONT_BLACK)
+    .fontSize(24)
+    .fillColor(HEADING_COLOR)
+    .text('Por Identificar', MARGIN, 28, { width: width - MARGIN * 2 })
+  doc
+    .moveTo(MARGIN, 62)
+    .lineTo(width - MARGIN, 62)
+    .strokeColor('#dddddd')
+    .lineWidth(0.5)
+    .stroke()
+
+  const sorted = orphans.slice().sort((a, b) => {
+    const la = a.lastName ?? '', lb = b.lastName ?? ''
+    return la.localeCompare(lb, 'es') || a.firstName.localeCompare(b.firstName, 'es')
+  })
+
+  let col = 0
+  let y = 76
+  const colX = () => MARGIN + col * (colW + COL_GAP)
+
+  const advanceCol = () => {
+    if (col === 0) {
+      col = 1
+      y = 76
+    } else {
+      doc.addPage()
+      doc.rect(0, 0, width, 6).fill(HEADING_COLOR)
+      col = 0
+      y = 76
+    }
+  }
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > height - MARGIN) advanceCol()
+  }
+
+  for (const o of sorted) {
+    ensureSpace(13)
+    const name = o.lastName ? `${o.lastName}, ${o.firstName}` : o.firstName
+    const bday = o.birthday ?? ''
+    const label = bday ? `${name}  —  ${bday}` : name
+    doc
+      .font(FONT)
+      .fontSize(9)
+      .fillColor(NAME_COLOR)
+      .text(label, colX() + 8, y, { width: colW - 8 })
+    y += 13
   }
 }
 

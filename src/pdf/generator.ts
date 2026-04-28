@@ -7,12 +7,13 @@ import * as relRepo from '../core/relationships.repository'
 import * as mediaRepo from '../core/media.repository'
 import * as nucFamRepo from '../core/nuclearFamilies.repository'
 import * as familyNotesRepo from '../core/familyNotes.repository'
+import * as orphansRepo from '../core/orphans.repository'
 import { getNextVersion } from '../core/pdfSettings.repository'
 import type { Member, Relationship, MediaAsset } from '../core/types'
 import { renderCover, renderForeword, renderFamilyCover } from './layouts/cover'
 import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
-import { renderIndexes } from './layouts/indexPage'
+import { renderIndexes, renderOrphansPage } from './layouts/indexPage'
 import { registerFonts, ROOT_PALETTE, BRANCH_PALETTE, type BranchPalette } from './theme'
 
 export type BranchSection = { id: number; firstName: string; lastName: string; palette: BranchPalette }
@@ -330,6 +331,13 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
         renderFamilyPage(doc, family)
       }
     }
+  }
+
+  // --- Por Identificar ---
+  const allOrphans = orphansRepo.findAll()
+  if (allOrphans.length > 0) {
+    doc.addPage()
+    renderOrphansPage(doc, allOrphans)
   }
 
   // --- Indexes ---
