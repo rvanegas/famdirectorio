@@ -4,6 +4,7 @@ import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { generatePdf } from '../../pdf/generator'
+import { config } from '../../config'
 
 export function registerPdfCommand(program: Command): void {
   const pdfCmd = program.command('pdf').description('Generate PDF family directory')
@@ -12,9 +13,7 @@ export function registerPdfCommand(program: Command): void {
     .command('open')
     .description('Open the generated PDF in data/output')
     .action(() => {
-      const famDir = process.env.FAM_DIR
-      if (!famDir) { console.error(chalk.red('FAM_DIR is not set')); process.exit(1) }
-      const outputDir = path.join(famDir, 'data/output')
+      const outputDir = path.join(config.dir, 'data/output')
       const pdfs = fs.existsSync(outputDir)
         ? fs.readdirSync(outputDir).filter(f => f.endsWith('.pdf'))
         : []
@@ -32,10 +31,8 @@ export function registerPdfCommand(program: Command): void {
     .option('-o, --output <path>', 'Output file path')
     .action(async (opts) => {
       console.log(chalk.cyan('Generating PDF...'))
-      const famDir = process.env.FAM_DIR
-      if (!famDir) { console.error(chalk.red('FAM_DIR is not set')); process.exit(1) }
       try {
-        const outputDir = path.join(famDir, 'data/output')
+        const outputDir = path.join(config.dir, 'data/output')
         if (fs.existsSync(outputDir)) {
           for (const file of fs.readdirSync(outputDir)) {
             if (file.endsWith('.pdf')) {

@@ -4,11 +4,10 @@ import nodemailer from 'nodemailer'
 import Mustache from 'mustache'
 import type { Member } from './types'
 import { findById } from './members.repository'
+import { config } from '../config'
 
 function emailTemplatesDir(): string {
-  const famDir = process.env.FAM_DIR
-  if (!famDir) throw new Error('FAM_DIR is not set')
-  return path.join(famDir, 'email-templates')
+  return path.join(config.dir, 'email-templates')
 }
 
 export function resolveTemplate(name: string): { subject: string; body: string } {
@@ -30,23 +29,14 @@ export function resolveTemplate(name: string): { subject: string; body: string }
 }
 
 export function resolveSenders(): { name: string; email: string | null }[] {
-  const raw = process.env.FAM_SENDERS
-  if (!raw) return []
-
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((p) => {
-      const id = parseInt(p, 10)
-      if (isNaN(id)) throw new Error(`FAM_SENDERS: invalid member ID "${p}"`)
-      const member = findById(id)
-      if (!member) throw new Error(`FAM_SENDERS: member ${id} not found`)
-      return {
-        name: [member.firstName, member.lastName].filter(Boolean).join(' '),
-        email: member.email ?? null,
-      }
-    })
+  return config.senders.map((id) => {
+    const member = findById(id)
+    if (!member) throw new Error(`senders: member ${id} not found`)
+    return {
+      name: [member.firstName, member.lastName].filter(Boolean).join(' '),
+      email: member.email ?? null,
+    }
+  })
 }
 
 export function renderEmail(
@@ -68,7 +58,7 @@ export function renderEmail(
 }
 
 export function findLatestPdf(): string {
-  const outputDir = path.join(process.env.FAM_DIR!, 'data/output')
+  const outputDir = path.join(config.dir, 'data/output')
   if (!fs.existsSync(outputDir)) {
     throw new Error(`Output directory does not exist: ${outputDir}`)
   }
@@ -90,17 +80,11 @@ export function findLatestPdf(): string {
 }
 
 function createTransport() {
-  const user = process.env.FAM_SMTP_USER
-  const pass = process.env.FAM_SMTP_PASS
-  const host = process.env.FAM_SMTP_HOST
-  if (!user || !pass || !host) {
-    throw new Error('FAM_SMTP_USER, FAM_SMTP_PASS, and FAM_SMTP_HOST environment variables are required')
-  }
-  const secure = process.env.FAM_SMTP_SSL === 'true'
+  const { host, user, pass, ssl, port } = config.smtp
   return nodemailer.createTransport({
     host,
-    port: Number(process.env.FAM_SMTP_PORT ?? (secure ? 465 : 587)),
-    secure,
+    port,
+    secure: ssl,
     auth: { user, pass },
   })
 }
@@ -114,13 +98,8 @@ export async function sendEmail(
 ): Promise<void> {
   const transport = createTransport()
 
-  const from = process.env.FAM_SMTP_FROM
-  if (!from) {
-    throw new Error('FAM_SMTP_FROM environment variable is required')
-  }
-
   await transport.sendMail({
-    from,
+    from: config.smtp.from,
     to,
     ...(cc && cc.length > 0 ? { cc } : {}),
     subject,

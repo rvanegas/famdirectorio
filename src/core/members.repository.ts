@@ -4,13 +4,12 @@ import { and, eq, gte, isNotNull, isNull, like, lt, lte, or, sql } from 'drizzle
 import { relationships } from '../db/schema'
 import type { Member } from './types'
 import path from 'path'
+import { config } from '../config'
 
 function normalizePhotoPath(p: string | null | undefined): string | null | undefined {
   if (!p) return p
   if (!path.isAbsolute(p)) return p
-  const famDir = process.env.FAM_DIR
-  if (!famDir) return p
-  return path.relative(famDir, p)
+  return path.relative(config.dir, p)
 }
 
 function toMember(row: typeof members.$inferSelect): Member {

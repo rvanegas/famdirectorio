@@ -5,6 +5,7 @@ import fs from 'fs'
 import * as mediaRepo from '../../core/media.repository'
 import * as membersRepo from '../../core/members.repository'
 import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
+import { config } from '../../config'
 
 export function mediaFileName(firstName: string, lastName: string | null, ext: string, isFamily: boolean, id: number): string {
   const name = `${firstName}${lastName ? ' ' + lastName : ''}`
@@ -75,7 +76,7 @@ export function registerMediaCommand(program: Command): void {
 
       const id = parseInt(ownerId, 10)
 
-      const famDir = process.env.FAM_DIR!
+      const famDir = config.dir
       const ext = path.extname(filePath)
 
       if (opts.family) {

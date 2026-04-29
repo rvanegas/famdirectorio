@@ -77,13 +77,25 @@ src/
     └── utils/            # table formatters, interactive prompts
 ```
 
-**Data files**:
-- `$FAM_DIR/db/family.db` — SQLite database (outside repo; auto-created on first run)
-- `$FAM_DIR/media/{memberId}/` — local photo storage (outside repo; parallel to db)
-- `FAM_DIR` env var is required; the CLI exits with an error if it is not set (`FAM_DIR=/Users/rodvandur/.local/share/famdirectorio` on this machine)
-- `FAM_SMTP_USER`, `FAM_SMTP_PASS`, and `FAM_SMTP_FROM` are required for `fam email` commands
-- `FAM_SMTP_HOST` is required; `FAM_SMTP_PORT` (default: `587` or `465` if SSL) and `FAM_SMTP_SSL=true` (default: off) are optional
-- `FAM_SENDERS` — comma-separated member IDs (e.g. `10,26,52`); resolved to `{{sender1}}`, `{{sender2}}`, ... mustache vars in templates, rendered as `Name (email)`
+**Configuration**: `~/.config/famdirectorio/config.toml` (read at startup; CLI exits if missing or invalid)
+
+```toml
+dir = "/Users/rodvandur/.local/share/famdirectorio"
+senders = [10, 26, 52]   # member IDs; resolved to {{sender1}}, {{sender2}}, ... in email templates
+
+[smtp]
+host = "..."
+user = "..."
+pass = "..."
+from = "..."
+# ssl = true    # optional; defaults to false
+# port = 465   # optional; defaults to 587, or 465 if ssl = true
+```
+
+**Data files** (all relative to `dir` in config):
+- `db/family.db` — SQLite database (auto-created on first run)
+- `media/{memberId}/` — local photo storage
+- `email-templates/` — mustache `.txt` templates for `fam email send`
 - `data/output/` — generated PDFs (gitignored)
 
 **Schema tables**: `members`, `relationships` (edge list), `nuclearFamilies` (derived from relationships; synced via `fam family sync`), `media`

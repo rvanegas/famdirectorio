@@ -3,13 +3,9 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema'
 import path from 'path'
 import { mkdirSync } from 'fs'
+import { config } from '../config'
 
-const famDir = process.env.FAM_DIR
-if (!famDir) {
-  console.error('FAM_DIR environment variable is not set')
-  process.exit(1)
-}
-const dbDir = path.join(famDir, 'db')
+const dbDir = path.join(config.dir, 'db')
 mkdirSync(dbDir, { recursive: true })
 const dbPath = path.join(dbDir, 'family.db')
 const sqlite = new Database(dbPath)

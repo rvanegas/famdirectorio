@@ -11,6 +11,7 @@ import * as nuclearFamiliesRepo from '../../core/nuclearFamilies.repository'
 import * as familyNotesRepo from '../../core/familyNotes.repository'
 import * as mediaRepo from '../../core/media.repository'
 import { mediaFileName } from './media.command'
+import { config } from '../../config'
 
 type FamilyKey = string  // "p1:p2" where p2 may be "null"
 
@@ -345,7 +346,7 @@ export function registerFamilyCommand(program: Command): void {
 
       // --- Media filename convention check ---
       {
-        const famDir = process.env.FAM_DIR!
+        const famDir = config.dir
         const allMedia = mediaRepo.findAll()
         const badMedia: { asset: typeof allMedia[0]; expectedBase: string; expectedFile: string }[] = []
 

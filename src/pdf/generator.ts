@@ -15,6 +15,7 @@ import { renderFamilyPage, type NuclearFamily } from './layouts/familyPage'
 import { renderBranchDivider } from './layouts/branchPage'
 import { renderIndexes, renderOrphansPage } from './layouts/indexPage'
 import { registerFonts, ROOT_PALETTE, BRANCH_PALETTE, type BranchPalette } from './theme'
+import { config } from '../config'
 
 export type BranchSection = { id: number; firstName: string; lastName: string; palette: BranchPalette }
 
@@ -148,9 +149,7 @@ function buildNuclearFamilies(
 }
 
 export async function generatePdf(options: GenerateOptions = {}): Promise<string> {
-  const famDir = process.env.FAM_DIR
-  if (!famDir) throw new Error('FAM_DIR environment variable is not set')
-  const outputDir = path.join(famDir, 'data/output')
+  const outputDir = path.join(config.dir, 'data/output')
   fs.mkdirSync(outputDir, { recursive: true })
 
   const dateStr = new Date().toISOString().slice(0, 10)
@@ -215,7 +214,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   renderCover(doc, allMembers.length, version)
 
   // --- Foreword ---
-  const forewordPath = path.join(famDir, 'data/foreword.md')
+  const forewordPath = path.join(config.dir, 'data/foreword.md')
   if (fs.existsSync(forewordPath)) {
     doc.addPage()
     renderForeword(doc, fs.readFileSync(forewordPath, 'utf8'))

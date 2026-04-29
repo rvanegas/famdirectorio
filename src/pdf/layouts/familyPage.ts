@@ -4,6 +4,7 @@ import path from 'path'
 import type { Member, MediaAsset } from '../../core/types'
 import type { BranchSection } from '../generator'
 import { FONT, FONT_BLACK, FONT_ITALIC, type BranchPalette } from '../theme'
+import { config } from '../../config'
 
 type PDFDoc = InstanceType<typeof PDFDocument>
 
@@ -13,7 +14,7 @@ const PHOTO_SIZE = 100
 function resolvePhoto(p: string | null): string | null {
   if (!p) return null
   if (path.isAbsolute(p)) return p
-  return path.join(process.env.FAM_DIR!, p)
+  return path.join(config.dir, p)
 }
 
 export interface NuclearFamily {
@@ -142,7 +143,7 @@ export function renderFamilyPage(doc: PDFDoc, family: NuclearFamily, bgPalette?:
 
       const filePath = path.isAbsolute(asset.filePath)
         ? asset.filePath
-        : path.join(process.env.FAM_DIR!, asset.filePath)
+        : path.join(config.dir, asset.filePath)
 
       if (fs.existsSync(filePath)) {
         doc.image(filePath, mx, my, { width: PHOTO_SIZE, height: PHOTO_SIZE, cover: [PHOTO_SIZE, PHOTO_SIZE] })
