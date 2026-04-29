@@ -118,11 +118,14 @@ export function registerEmailCommand(program: Command): void {
         console.log(chalk.yellow('\n[Dry run — no emails will be sent]\n'))
       }
 
-      for (const member of members) {
-        if (!member.email) {
-          console.log(chalk.yellow(`  No email — skipping: ${member.firstName} ${member.lastName ?? ''}`))
-          continue
-        }
+      const membersWithEmail = members.filter((m): m is typeof m & { email: string } => !!m.email)
+      const skipped = members.filter((m) => !m.email)
+      for (const m of skipped) {
+        console.log(chalk.yellow(`  No email — skipping: ${m.firstName} ${m.lastName ?? ''}`))
+      }
+
+      for (let i = 0; i < membersWithEmail.length; i++) {
+        const member = membersWithEmail[i]
 
         const rendered = renderEmail(template, member, senders)
 
@@ -145,6 +148,9 @@ export function registerEmailCommand(program: Command): void {
           } catch (err: unknown) {
             console.log(chalk.red(`Error: ${(err as Error).message}`))
             emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'error', error: (err as Error).message })
+          }
+          if (i < membersWithEmail.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 3000))
           }
         }
       }
