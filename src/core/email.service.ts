@@ -11,7 +11,6 @@ function emailTemplatesDir(): string {
   return path.join(famDir, 'email-templates')
 }
 
-
 export function resolveTemplate(name: string): { subject: string; body: string } {
   const templatePath = path.join(emailTemplatesDir(), `${name}.txt`)
   if (!fs.existsSync(templatePath)) {
@@ -93,14 +92,15 @@ export function findLatestPdf(): string {
 function createTransport() {
   const user = process.env.FAM_SMTP_USER
   const pass = process.env.FAM_SMTP_PASS
-  if (!user || !pass) {
-    throw new Error('FAM_SMTP_USER and FAM_SMTP_PASS environment variables are required')
+  const host = process.env.FAM_SMTP_HOST
+  if (!user || !pass || !host) {
+    throw new Error('FAM_SMTP_USER, FAM_SMTP_PASS, and FAM_SMTP_HOST environment variables are required')
   }
-
+  const secure = process.env.FAM_SMTP_SSL === 'true'
   return nodemailer.createTransport({
-    host: process.env.FAM_SMTP_HOST ?? 'smtp.gmail.com',
-    port: Number(process.env.FAM_SMTP_PORT ?? 587),
-    secure: false,
+    host,
+    port: Number(process.env.FAM_SMTP_PORT ?? (secure ? 465 : 587)),
+    secure,
     auth: { user, pass },
   })
 }
@@ -114,8 +114,13 @@ export async function sendEmail(
 ): Promise<void> {
   const transport = createTransport()
 
+  const from = process.env.FAM_SMTP_FROM
+  if (!from) {
+    throw new Error('FAM_SMTP_FROM environment variable is required')
+  }
+
   await transport.sendMail({
-    from: process.env.FAM_SMTP_USER,
+    from,
     to,
     ...(cc && cc.length > 0 ? { cc } : {}),
     subject,
