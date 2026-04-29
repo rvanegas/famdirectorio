@@ -1,0 +1,16 @@
+id,first_name,last_name,email,phone,instagram,city,occupation,birthday,seniority,is_alive
+1,Carlos,Mendoza,carlos.mendoza@gmail.com,+1-305-555-0101,@carlosmendoza,Miami,Ingeniero,03-12,1,1
+2,Elena,Mendoza,elena.m@hotmail.com,+1-305-555-0102,,Miami,Ama de casa,07-24,2,1
+3,Andrés,Mendoza Rojas,andres.mendoza@yahoo.com,+57-310-555-0201,@andresmr,Bogotá,Médico,11-05,3,1
+4,Patricia,Mendoza Rojas,paty.mendoza@gmail.com,+57-314-555-0202,@patymendoza,Medellín,Abogada,02-18,4,1
+5,Jorge,Mendoza Rojas,jorge.mr@outlook.com,+1-786-555-0203,,Miami,Contador,09-30,5,1
+6,Sofía,Restrepo de Mendoza,sofia.restrepo@gmail.com,+57-312-555-0301,@sofiarest,Bogotá,Diseñadora,04-14,6,1
+7,Miguel,Mendoza Restrepo,miguel.mr@gmail.com,+57-315-555-0401,@miguelmr,Bogotá,Estudiante,06-22,7,1
+8,Valentina,Mendoza Restrepo,vale.mendoza@gmail.com,+57-315-555-0402,@valemendoza,Bogotá,Estudiante,01-09,8,1
+9,Roberto,Torres,roberto.torres@gmail.com,+1-305-555-0501,,Hialeah,Mecánico,08-17,9,0
+10,Lucía,Mendoza Torres,lucia.mt@gmail.com,+1-305-555-0502,@luciamt,Miami,Enfermera,12-03,10,1
+11,Diego,Mendoza Torres,diego.mt@outlook.com,+1-786-555-0503,@diegomtorres,Miami,Chef,05-27,11,1
+12,Isabel,Guzmán de Mendoza,isabel.guzman@gmail.com,+57-316-555-0601,@isaguzman,Cali,Profesora,10-11,12,1
+13,Tomás,Mendoza Guzmán,tomas.mg@gmail.com,+57-318-555-0701,,Cali,Músico,03-19,13,1
+14,Camila,Mendoza Guzmán,cami.mg@gmail.com,+57-318-555-0702,@camimendoza,Cali,Estudiante,07-31,14,1
+15,Héctor,Mendoza,hector.m@gmail.com,+1-305-555-0801,,Miami,Jubilado,01-05,15,0

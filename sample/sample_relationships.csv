@@ -1,0 +1,15 @@
+id_from,id_to,type,comment
+1,2,spouse,Carlos Mendoza conyuge de Elena Mendoza
+1,3,child,Carlos Mendoza padre de Andrés Mendoza Rojas
+1,4,child,Carlos Mendoza padre de Patricia Mendoza Rojas
+1,5,child,Carlos Mendoza padre de Jorge Mendoza Rojas
+3,6,spouse,Andrés Mendoza Rojas conyuge de Sofía Restrepo de Mendoza
+3,7,child,Andrés Mendoza Rojas padre de Miguel Mendoza Restrepo
+3,8,child,Andrés Mendoza Rojas padre de Valentina Mendoza Restrepo
+5,9,spouse,Jorge Mendoza Rojas conyuge de Roberto Torres
+5,10,child,Jorge Mendoza Rojas padre de Lucía Mendoza Torres
+5,11,child,Jorge Mendoza Rojas padre de Diego Mendoza Torres
+4,12,spouse,Patricia Mendoza Rojas conyuge de Isabel Guzmán de Mendoza
+4,13,child,Patricia Mendoza Rojas madre de Tomás Mendoza Guzmán
+4,14,child,Patricia Mendoza Rojas madre de Camila Mendoza Guzmán
+1,15,child,Carlos Mendoza padre de Héctor Mendoza
