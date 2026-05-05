@@ -11,6 +11,7 @@ export const members = sqliteTable('members', {
   occupation: text('occupation'),
   attended2023: integer('attended_2023'),
   isAlive: integer('is_alive').notNull().default(1),
+  earlyDeath: integer('early_death').default(0),
   isRoot: integer('is_root').default(0),
   seniority: integer('seniority'),
   generation: integer('generation'),

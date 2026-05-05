@@ -17,6 +17,7 @@ function toMember(row: typeof members.$inferSelect): Member {
     ...row,
     attended2023: row.attended2023 === 1,
     isAlive: row.isAlive === 1,
+    earlyDeath: row.earlyDeath == null ? null : row.earlyDeath === 1,
     isRoot: row.isRoot === 1,
   }
 }
@@ -170,6 +171,7 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
       photoPath: normalizePhotoPath(data.photoPath),
       attended2023: data.attended2023 ? 1 : 0,
       isAlive: data.isAlive ? 1 : 0,
+      earlyDeath: data.earlyDeath == null ? null : data.earlyDeath ? 1 : 0,
       isRoot: data.isRoot ? 1 : 0,
     })
     .returning()
@@ -178,7 +180,7 @@ export function create(data: Omit<Member, 'id'> & { id?: number }): Member {
 }
 
 export function update(id: number, data: Partial<Omit<Member, 'id'>>): Member | null {
-  const { attended2023, isAlive, isRoot, photoPath, ...rest } = data
+  const { attended2023, isAlive, earlyDeath, isRoot, photoPath, ...rest } = data
   const row = db
     .update(members)
     .set({
@@ -186,6 +188,7 @@ export function update(id: number, data: Partial<Omit<Member, 'id'>>): Member | 
       ...(photoPath !== undefined ? { photoPath: normalizePhotoPath(photoPath) } : {}),
       ...(attended2023 !== undefined ? { attended2023: attended2023 ? 1 : 0 } : {}),
       ...(isAlive !== undefined ? { isAlive: isAlive ? 1 : 0 } : {}),
+      ...(earlyDeath !== undefined ? { earlyDeath: earlyDeath == null ? null : earlyDeath ? 1 : 0 } : {}),
       ...(isRoot !== undefined ? { isRoot: isRoot ? 1 : 0 } : {}),
       updatedAt: new Date().toISOString(),
     })

@@ -131,4 +131,31 @@ export function registerMediaCommand(program: Command): void {
       }
       console.log(chalk.green(`Set media ${mediaId} as primary`))
     })
+
+  mediaCmd
+    .command('delete <mediaId>')
+    .description('Delete a media record and its file from disk')
+    .action((mediaId) => {
+      const id = parseInt(mediaId, 10)
+      const asset = mediaRepo.findById(id)
+      if (!asset) {
+        console.error(chalk.red(`Media ${mediaId} not found`))
+        process.exit(1)
+      }
+
+      const famDir = config.dir
+      const absPath = path.join(famDir, asset.filePath)
+      mediaRepo.remove(id)
+
+      if (fs.existsSync(absPath)) {
+        fs.unlinkSync(absPath)
+      }
+
+      if (asset.isPrimary && asset.memberId != null) {
+        const remaining = mediaRepo.findByMember(asset.memberId).find((a) => a.isPrimary)
+        membersRepo.update(asset.memberId, { photoPath: remaining?.filePath ?? null })
+      }
+
+      console.log(chalk.green(`Deleted media ${mediaId}`))
+    })
 }

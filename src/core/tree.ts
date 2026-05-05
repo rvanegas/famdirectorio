@@ -7,6 +7,7 @@ function toMember(row: typeof members.$inferSelect): Member {
     ...row,
     attended2023: row.attended2023 === 1,
     isAlive: row.isAlive === 1,
+    earlyDeath: row.earlyDeath == null ? null : row.earlyDeath === 1,
     isRoot: row.isRoot === 1,
   }
 }

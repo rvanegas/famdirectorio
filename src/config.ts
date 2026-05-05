@@ -6,17 +6,20 @@ import { z } from 'zod'
 
 const CONFIG_PATH = path.join(os.homedir(), '.config', 'famdirectorio', 'config.toml')
 
+const SmtpSchema = z.object({
+  host: z.string(),
+  user: z.string(),
+  pass: z.string(),
+  from: z.string(),
+  port: z.number().int().optional(),
+  ssl: z.boolean().default(false),
+})
+
 const ConfigSchema = z.object({
   dir: z.string(),
   senders: z.array(z.number().int()).default([]),
-  smtp: z.object({
-    host: z.string(),
-    user: z.string(),
-    pass: z.string(),
-    from: z.string(),
-    port: z.number().int().optional(),
-    ssl: z.boolean().default(false),
-  }),
+  smtp: SmtpSchema,
+  smtp_alt: SmtpSchema.optional(),
 })
 
 function loadConfig() {
@@ -32,17 +35,19 @@ function loadConfig() {
     process.exit(1)
   }
   const c = result.data
+  const normSmtp = (s: z.infer<typeof SmtpSchema>) => ({
+    host: s.host,
+    user: s.user,
+    pass: s.pass,
+    from: s.from,
+    ssl: s.ssl,
+    port: s.port ?? (s.ssl ? 465 : 587),
+  })
   return {
     dir: c.dir,
     senders: c.senders,
-    smtp: {
-      host: c.smtp.host,
-      user: c.smtp.user,
-      pass: c.smtp.pass,
-      from: c.smtp.from,
-      ssl: c.smtp.ssl,
-      port: c.smtp.port ?? (c.smtp.ssl ? 465 : 587),
-    },
+    smtp: normSmtp(c.smtp),
+    smtp_alt: c.smtp_alt ? normSmtp(c.smtp_alt) : undefined,
   }
 }
 

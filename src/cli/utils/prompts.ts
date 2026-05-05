@@ -46,6 +46,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
   const notes = await spanishInput('Notes:', defaults.notes ?? '')
   const seniorityStr = await input({ message: 'Seniority (birth order, 1=oldest; leave blank for none):', default: defaults.seniority?.toString() ?? '' })
   const isAlive = await confirm({ message: 'Currently alive?', default: defaults.isAlive ?? true })
+  const earlyDeath = isAlive ? null : await confirm({ message: 'Early death (before expected age)?', default: defaults.earlyDeath ?? false })
   const attended2023 = await confirm({ message: 'Attended 2023 reunion?', default: defaults.attended2023 ?? false })
   const verifyNow = await confirm({ message: 'Mark desc as verified today?', default: false })
   const descVerifiedAt = verifyNow
@@ -68,6 +69,7 @@ export async function promptMember(defaults: Partial<MemberInput> = {}): Promise
     notes: notes || null,
     seniority: seniorityStr ? parseInt(seniorityStr, 10) : null,
     isAlive,
+    earlyDeath: earlyDeath === false ? false : earlyDeath || null,
     attended2023,
     isRoot: defaults.isRoot ?? false,
     descVerifiedAt,

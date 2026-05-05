@@ -10,6 +10,7 @@ import {
   findLatestPdf,
   sendEmail,
 } from '../../core/email.service'
+import { config } from '../../config'
 
 type Member = NonNullable<ReturnType<typeof membersRepo.findById>>
 
@@ -90,6 +91,7 @@ export function registerEmailCommand(program: Command): void {
     .option('-g, --generation <n>', 'Send to all members up to and including generation N', parseInt)
     .option('-c, --cc-senders', 'CC all senders on every email')
     .option('-d, --dry-run', 'Print emails to stdout without sending')
+    .option('-l, --alt', 'Use smtp_alt config instead of smtp')
     .action(async (opts) => {
       const members = resolveRecipients(opts)
       if (!members) return
@@ -103,6 +105,15 @@ export function registerEmailCommand(program: Command): void {
       }
 
       const senders = resolveSenders()
+
+      let smtpOverride: typeof config.smtp | undefined
+      if (opts.alt) {
+        if (!config.smtp_alt) {
+          console.error(chalk.red('No smtp_alt section found in config.'))
+          process.exit(1)
+        }
+        smtpOverride = config.smtp_alt
+      }
 
       let pdfPath: string
       try {
@@ -139,7 +150,7 @@ export function registerEmailCommand(program: Command): void {
         } else {
           process.stdout.write(`  Sending to ${member.firstName} ${member.lastName ?? ''} <${member.email}>... `)
           try {
-            await sendEmail(member.email, rendered.subject, rendered.body, pdfPath, ccAddresses)
+            await sendEmail(member.email, rendered.subject, rendered.body, pdfPath, ccAddresses, smtpOverride)
             console.log(chalk.green('Sent.'))
             emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
           } catch (err: unknown) {

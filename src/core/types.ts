@@ -10,6 +10,7 @@ export interface Member {
   occupation: string | null
   attended2023: boolean
   isAlive: boolean
+  earlyDeath: boolean | null
   isRoot: boolean
   seniority: number | null
   generation: number | null

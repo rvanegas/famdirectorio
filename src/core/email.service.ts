@@ -79,13 +79,14 @@ export function findLatestPdf(): string {
   return files[0].fullPath
 }
 
-function createTransport() {
-  const { host, user, pass, ssl, port } = config.smtp
+type SmtpConfig = { host: string; user: string; pass: string; from: string; ssl: boolean; port: number }
+
+function createTransport(smtp: SmtpConfig) {
   return nodemailer.createTransport({
-    host,
-    port,
-    secure: ssl,
-    auth: { user, pass },
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.ssl,
+    auth: { user: smtp.user, pass: smtp.pass },
   })
 }
 
@@ -94,12 +95,14 @@ export async function sendEmail(
   subject: string,
   body: string,
   attachmentPath: string,
-  cc?: string[]
+  cc?: string[],
+  smtp?: SmtpConfig
 ): Promise<void> {
-  const transport = createTransport()
+  const smtpCfg = smtp ?? config.smtp
+  const transport = createTransport(smtpCfg)
 
   await transport.sendMail({
-    from: config.smtp.from,
+    from: smtpCfg.from,
     to,
     ...(cc && cc.length > 0 ? { cc } : {}),
     subject,
