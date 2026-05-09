@@ -90,6 +90,13 @@ pass = "..."
 from = "..."
 # ssl = true    # optional; defaults to false
 # port = 465   # optional; defaults to 587, or 465 if ssl = true
+
+[s3]
+bucket = "..."
+region = "..."
+cloudfront_url = "https://..."   # CloudFront distribution URL for the bucket
+access_key_id = "..."
+secret_access_key = "..."
 ```
 
 **Data files** (all relative to `dir` in config):

@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import path from 'path'
 import * as membersRepo from '../../core/members.repository'
 import * as emailLogRepo from '../../core/emailLog.repository'
+import * as pdfSettingsRepo from '../../core/pdfSettings.repository'
 import {
   resolveTemplate,
   renderEmail,
@@ -10,6 +11,7 @@ import {
   findLatestPdf,
   sendEmail,
 } from '../../core/email.service'
+import { uploadPdf, buildCloudfrontUrl } from '../../core/s3.service'
 import { config } from '../../config'
 
 type Member = NonNullable<ReturnType<typeof membersRepo.findById>>
@@ -123,7 +125,29 @@ export function registerEmailCommand(program: Command): void {
         process.exit(1)
       }
 
-      console.log(chalk.cyan(`Attaching directory: ${path.basename(pdfPath)}`))
+      const currentVersion = pdfSettingsRepo.getCurrentVersion()
+      const uploadedVersion = pdfSettingsRepo.getUploadedVersion()
+
+      let pdfUrl: string
+      if (!opts.dryRun && config.s3) {
+        if (uploadedVersion === currentVersion) {
+          pdfUrl = buildCloudfrontUrl(currentVersion, pdfPath)
+          console.log(chalk.cyan(`Using already-uploaded v${currentVersion}: ${pdfUrl}`))
+        } else {
+          process.stdout.write(chalk.cyan(`Uploading v${currentVersion} to S3... `))
+          try {
+            pdfUrl = await uploadPdf(pdfPath, currentVersion)
+            pdfSettingsRepo.markUploaded(currentVersion)
+            console.log(chalk.green('Done.'))
+            console.log(chalk.cyan(`URL: ${pdfUrl}`))
+          } catch (err: unknown) {
+            console.error(chalk.red(`S3 upload failed: ${(err as Error).message}`))
+            process.exit(1)
+          }
+        }
+      } else {
+        pdfUrl = buildCloudfrontUrl(currentVersion, pdfPath)
+      }
 
       if (opts.dryRun) {
         console.log(chalk.yellow('\n[Dry run — no emails will be sent]\n'))
@@ -135,7 +159,7 @@ export function registerEmailCommand(program: Command): void {
           continue
         }
 
-        const rendered = renderEmail(template, member, senders)
+        const rendered = renderEmail(template, member, senders, pdfUrl)
 
         const ccAddresses = opts.ccSenders
           ? senders.map((s) => s.email).filter((e): e is string => !!e)
@@ -150,7 +174,7 @@ export function registerEmailCommand(program: Command): void {
         } else {
           process.stdout.write(`  Sending to ${member.firstName} ${member.lastName ?? ''} <${member.email}>... `)
           try {
-            await sendEmail(member.email, rendered.subject, rendered.body, pdfPath, ccAddresses, smtpOverride)
+            await sendEmail(member.email, rendered.subject, rendered.body, ccAddresses, smtpOverride)
             console.log(chalk.green('Sent.'))
             emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
           } catch (err: unknown) {

@@ -42,7 +42,8 @@ export function resolveSenders(): { name: string; email: string | null }[] {
 export function renderEmail(
   template: { subject: string; body: string },
   member: Member,
-  senders: { name: string; email: string | null }[]
+  senders: { name: string; email: string | null }[],
+  pdfUrl?: string
 ): { subject: string; body: string } {
   const sendersView = Object.fromEntries(
     senders.map((s, i) => [
@@ -50,7 +51,7 @@ export function renderEmail(
       s.email ? `${s.name} (${s.email})` : s.name,
     ])
   )
-  const view = { ...member, ...sendersView }
+  const view = { ...member, ...sendersView, ...(pdfUrl ? { pdfUrl } : {}) }
   return {
     subject: Mustache.render(template.subject, view),
     body: Mustache.render(template.body, view),
@@ -94,7 +95,6 @@ export async function sendEmail(
   to: string,
   subject: string,
   body: string,
-  attachmentPath: string,
   cc?: string[],
   smtp?: SmtpConfig
 ): Promise<void> {
@@ -107,11 +107,5 @@ export async function sendEmail(
     ...(cc && cc.length > 0 ? { cc } : {}),
     subject,
     text: body,
-    attachments: [
-      {
-        filename: path.basename(attachmentPath),
-        path: attachmentPath,
-      },
-    ],
   })
 }

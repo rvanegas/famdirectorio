@@ -15,11 +15,20 @@ const SmtpSchema = z.object({
   ssl: z.boolean().default(false),
 })
 
+const S3Schema = z.object({
+  bucket: z.string(),
+  region: z.string(),
+  cloudfront_url: z.string(),
+  access_key_id: z.string(),
+  secret_access_key: z.string(),
+})
+
 const ConfigSchema = z.object({
   dir: z.string(),
   senders: z.array(z.number().int()).default([]),
   smtp: SmtpSchema,
   smtp_alt: SmtpSchema.optional(),
+  s3: S3Schema.optional(),
 })
 
 function loadConfig() {
@@ -48,6 +57,7 @@ function loadConfig() {
     senders: c.senders,
     smtp: normSmtp(c.smtp),
     smtp_alt: c.smtp_alt ? normSmtp(c.smtp_alt) : undefined,
+    s3: c.s3,
   }
 }
 

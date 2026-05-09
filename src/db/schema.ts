@@ -80,6 +80,8 @@ export type NewNuclearFamily = typeof nuclearFamilies.$inferInsert
 export const pdfSettings = sqliteTable('pdf_settings', {
   id: integer('id').primaryKey(),
   version: integer('version').notNull(),
+  uploadedVersion: integer('uploaded_version'),
+  uploadedAt: text('uploaded_at'),
 })
 
 export type EmailLog = typeof emailLogs.$inferSelect
