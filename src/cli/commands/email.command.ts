@@ -176,10 +176,10 @@ export function registerEmailCommand(program: Command): void {
           try {
             await sendEmail(member.email, rendered.subject, rendered.body, ccAddresses, smtpOverride)
             console.log(chalk.green('Sent.'))
-            emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
+            if (!opts.alt) emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'sent', error: null })
           } catch (err: unknown) {
             console.log(chalk.red(`Error: ${(err as Error).message}`))
-            emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'error', error: (err as Error).message })
+            if (!opts.alt) emailLogRepo.logEmail({ memberId: member.id, toEmail: member.email, template: opts.template, subject: rendered.subject, pdfName: path.basename(pdfPath), status: 'error', error: (err as Error).message })
           }
         }
       }
