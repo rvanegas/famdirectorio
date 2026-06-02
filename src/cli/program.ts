@@ -7,6 +7,7 @@ import { registerFamilyCommand } from './commands/family.command'
 import { registerDbCommand } from './commands/db.command'
 import { registerEmailCommand } from './commands/email.command'
 import { registerReportCommand } from './commands/report.command'
+import { registerOrphansCommand } from './commands/orphans.command'
 
 export function createProgram(): Command {
   const program = new Command()
@@ -24,6 +25,7 @@ export function createProgram(): Command {
   registerDbCommand(program)
   registerEmailCommand(program)
   registerReportCommand(program)
+  registerOrphansCommand(program)
 
   return program
 }
