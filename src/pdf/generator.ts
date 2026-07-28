@@ -252,6 +252,9 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   }
   const allFamilies = buildNuclearFamilies(allMembers, allRels, memberMap, gen2Map, parentMap, rootSet, dbFamilies, familyMediaMap, notesByFamilyId)
 
+  // memberId -> page numbers where the member appears (populated while rendering family pages)
+  const memberPages = new Map<number, number[]>()
+
   {
     // Group families by Gen-2 section (null = root)
     const familiesBySection = new Map<number | null, NuclearFamily[]>()
@@ -307,11 +310,23 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
       familiesBySection.set(key, sortFamiliesDepthFirst(families))
     }
 
+    // Track the page(s) each member appears on (as a head or as a child).
+    // A member appears on their own family page and/or their parents' family page,
+    // i.e. one or two pages.
+    const recordAppearances = (family: NuclearFamily) => {
+      const pageNum = doc.bufferedPageRange().count
+      for (const m of [...family.heads, ...family.children]) {
+        if (!memberPages.has(m.id)) memberPages.set(m.id, [])
+        if (!memberPages.get(m.id)!.includes(pageNum)) memberPages.get(m.id)!.push(pageNum)
+      }
+    }
+
     // First: root families (no section), sorted by generation
     const origenPalette = ROOT_PALETTE
     const rootFamilies = familiesBySection.get(null) ?? []
     for (const family of rootFamilies) {
       doc.addPage()
+      recordAppearances(family)
       renderFamilyPage(doc, family, origenPalette)
     }
 
@@ -327,6 +342,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
 
       for (const family of sectionFamilies) {
         doc.addPage()
+        recordAppearances(family)
         renderFamilyPage(doc, family)
       }
     }
@@ -340,7 +356,7 @@ export async function generatePdf(options: GenerateOptions = {}): Promise<string
   }
 
   // --- Indexes ---
-  renderIndexes(doc, allMembers)
+  renderIndexes(doc, allMembers, memberPages)
 
   doc.end()
 

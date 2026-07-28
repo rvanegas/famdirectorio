@@ -240,7 +240,14 @@ function renderBirthdayIndex(doc: PDFDoc, members: Member[]): void {
   }
 }
 
-function renderContactIndex(doc: PDFDoc, members: Member[]): void {
+function pagesLabel(pages: number[] | undefined): string {
+  if (!pages || pages.length === 0) return ''
+  const sorted = [...new Set(pages)].sort((a, b) => a - b)
+  const noun = sorted.length === 1 ? 'página' : 'páginas'
+  return `${noun} ${sorted.join(', ')}`
+}
+
+function renderContactIndex(doc: PDFDoc, members: Member[], memberPages: Map<number, number[]>): void {
   const { width, height } = doc.page
   const colW = (width - MARGIN * 2 - COL_GAP) / 2
 
@@ -249,7 +256,7 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
     .font(FONT_BLACK)
     .fontSize(24)
     .fillColor(HEADING_COLOR)
-    .text('Índice de Contactos', MARGIN, 28, { width: width - MARGIN * 2 })
+    .text('Índice', MARGIN, 28, { width: width - MARGIN * 2 })
   doc
     .moveTo(MARGIN, 62)
     .lineTo(width - MARGIN, 62)
@@ -285,7 +292,8 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
   }
 
   for (const m of contacts) {
-    const lines = (m.phone ? 1 : 0) + (m.email ? 1 : 0) + (m.instagram ? 1 : 0)
+    const pages = pagesLabel(memberPages.get(m.id))
+    const lines = (pages ? 1 : 0) + (m.phone ? 1 : 0) + (m.email ? 1 : 0) + (m.instagram ? 1 : 0)
     ensureSpace(14 + lines * 11)
 
     doc
@@ -295,6 +303,14 @@ function renderContactIndex(doc: PDFDoc, members: Member[]): void {
       .text(lastFirst(m), colX() + 8, y, { width: colW - 8 })
     y += 13
 
+    if (pages) {
+      doc
+        .font(FONT_ITALIC)
+        .fontSize(8)
+        .fillColor(SUBTEXT_COLOR)
+        .text(pages, colX() + 16, y, { width: colW - 16 })
+      y += 11
+    }
     if (m.phone) {
       doc
         .font(FONT)
@@ -380,7 +396,11 @@ export function renderOrphansPage(doc: PDFDoc, orphans: Orphan[]): void {
   }
 }
 
-export function renderIndexes(doc: PDFDoc, members: Member[]): void {
+export function renderIndexes(doc: PDFDoc, members: Member[], memberPages: Map<number, number[]>): void {
+  // --- Contact index (first, right after "Por Identificar") ---
+  doc.addPage()
+  renderContactIndex(doc, members, memberPages)
+
   // --- Occupation index ---
   doc.addPage()
   renderIndexSection(doc, 'Índice por Ocupación', buildIndex(members, m => m.occupation))
@@ -388,10 +408,6 @@ export function renderIndexes(doc: PDFDoc, members: Member[]): void {
   // --- Location index ---
   doc.addPage()
   renderIndexSection(doc, 'Índice por Ciudad', buildIndex(members, m => m.city))
-
-  // --- Contact index ---
-  doc.addPage()
-  renderContactIndex(doc, members)
 
   // --- Birthday index ---
   doc.addPage()
