@@ -13,6 +13,9 @@ const SmtpSchema = z.object({
   from: z.string(),
   port: z.number().int().optional(),
   ssl: z.boolean().default(false),
+  // SES only: sent as X-SES-CONFIGURATION-SET, so this mail's bounces and
+  // complaints are counted apart from thefloor's on the shared identity.
+  configuration_set: z.string().optional(),
 })
 
 const S3Schema = z.object({
@@ -51,6 +54,7 @@ function loadConfig() {
     from: s.from,
     ssl: s.ssl,
     port: s.port ?? (s.ssl ? 465 : 587),
+    configurationSet: s.configuration_set,
   })
   return {
     dir: c.dir,
